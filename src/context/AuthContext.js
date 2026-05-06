@@ -5,24 +5,21 @@ import { useRouter } from 'next/navigation';
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
-    const [user, setUser] = useState(() => {
-        if (typeof window !== 'undefined') {
-            const storedUser = localStorage.getItem('user');
-            const token = localStorage.getItem('auth_token');
-            if (storedUser && token) {
-                try {
-                    return JSON.parse(storedUser);
-                } catch (e) {
-                    return null;
-                }
-            }
-        }
-        return null;
-    });
+    const [user, setUser] = useState(null);  // Initialize as null (matches server)
     const [loading, setLoading] = useState(true);
     const router = useRouter();
 
     useEffect(() => {
+        // This only runs on the client after hydration
+        const storedUser = localStorage.getItem('user');
+        const token = localStorage.getItem('auth_token');
+        if (storedUser && token) {
+            try {
+                setUser(JSON.parse(storedUser));
+            } catch (e) {
+                setUser(null);
+            }
+        }
         setLoading(false);
     }, []);
 
