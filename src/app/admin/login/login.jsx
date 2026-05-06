@@ -61,7 +61,7 @@ export default function AdminLoginScreen() {
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-600 shadow-lg">
             <BriefcaseMedical size={22} className="text-white" />
           </div>
-          <span className="text-xl font-medium tracking-tight">MediCore</span>
+          <span className="text-xl font-medium tracking-tight">SunsKraft</span>
         </div>
 
         <div className="relative z-10 space-y-6">
@@ -110,7 +110,7 @@ export default function AdminLoginScreen() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@medicore.com"
+                  placeholder="admin@SunsKraft.com"
                   className="w-full rounded-md border border-slate-300 py-2.5 pl-10 pr-4 text-sm transition focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600"
                   required
                 />
@@ -120,7 +120,11 @@ export default function AdminLoginScreen() {
             <div className="space-y-2">
               <div className="flex justify-between">
                 <label className="text-sm font-medium text-slate-700">Password</label>
-                <button type="button" className="text-sm font-medium text-blue-600 hover:underline">
+                <button 
+                  type="button" 
+                  onClick={() => router.push('/admin/forgot-password')}
+                  className="text-sm font-medium text-blue-600 hover:underline"
+                >
                   Forgot password?
                 </button>
               </div>

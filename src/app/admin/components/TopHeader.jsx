@@ -1,9 +1,24 @@
 // TopHeader.jsx
+import { useState, useEffect, useRef } from 'react';
 import { Search, Bell, History, Menu } from 'lucide-react';
+import ProfileDropdown from './ProfileDropdown';
 
-export function TopNav({ user, onMenuClick }) {
+export function TopNav({ user, onMenuClick, logout }) {
+    const [dropdownOpen, setDropdownOpen] = useState(false);
+    const dropdownRef = useRef(null);
+
+    useEffect(() => {
+        function handleClickOutside(event) {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setDropdownOpen(false);
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
     return (
-        <header className="flex items-center justify-between mt-4 mb-6 mx-4 lg:mx-8 px-6 py-3 bg-white rounded-2xl border border-slate-100 shadow-sm">
+        <header className="sticky top-0 z-30 flex items-center justify-between py-4 px-6 bg-white/80 backdrop-blur-md border-b border-slate-100 shadow-sm mb-6 lg:static lg:mt-4 lg:mx-8 lg:rounded-2xl lg:border lg:bg-white lg:shadow-sm lg:backdrop-blur-none">
             {/* Mobile Menu Icon */}
             <button onClick={onMenuClick} className="lg:hidden flex items-center gap-3 hover:bg-slate-100 p-2 rounded-lg transition-colors">
                 <Menu className="text-slate-600" />
@@ -24,36 +39,31 @@ export function TopNav({ user, onMenuClick }) {
                 <button className="hidden md:block p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-colors">
                     <History size={20} />
                 </button>
-                <div className="flex items-center gap-3 pl-2 border-l border-slate-200">
-                    <div className="text-right hidden md:block">
-                        <p className="text-sm font-bold text-slate-800">Dr. Sarah Chen</p>
-                        <p className="text-[10px] text-slate-500 font-medium uppercase">Chief Administrator</p>
-                    </div>
-                    <img src="https://ui-avatars.com/api/?name=Sarah+Chen&background=0D8ABC&color=fff" alt="Profile" className="w-10 h-10 rounded-full border-2 border-white shadow-sm" />
+
+                {/* Profile Section with Dropdown */}
+                <div className="relative border-l border-slate-200 pl-4" ref={dropdownRef}>
+                    <button 
+                        onClick={() => setDropdownOpen(!dropdownOpen)}
+                        className="flex items-center gap-3 hover:bg-slate-50 p-1 pr-3 rounded-2xl transition-all active:scale-95"
+                    >
+                        <div className="text-right hidden md:block">
+                            <p className="text-sm font-bold text-slate-800">{user?.name || 'Loading...'}</p>
+                            <p className="text-[10px] text-slate-500 font-medium uppercase tracking-tight">{user?.specialization || 'Medical Staff'}</p>
+                        </div>
+                        <img
+                            src={user?.profile?.avatar || `https://ui-avatars.com/api/?name=${user?.name || 'User'}&background=0D8ABC&color=fff`}
+                            alt="Profile"
+                            className="w-10 h-10 rounded-full border-2 border-white shadow-sm ring-2 ring-slate-50"
+                        />
+                    </button>
+
+                    <ProfileDropdown 
+                        isOpen={dropdownOpen} 
+                        user={user} 
+                        logout={logout} 
+                    />
                 </div>
             </div>
         </header>
     );
-}
-
-// BottomNav.jsx (Mobile Only)
-export function BottomNav() {
-    const items = [
-        { icon: LayoutDashboard, label: 'DASHBOARD', active: true },
-        { icon: BriefcaseMedical, label: 'DOCTORS' },
-        { icon: Users, label: 'PATIENTS' },
-        { icon: CalendarCheck2, label: 'APPOINTMENTS' },
-        { icon: Settings, label: 'SETTINGS' },
-    ];
-
-    return (
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 px-2 py-3 flex justify-around items-center z-50">
-            {items.map((item) => (
-                <button key={item.label} className={`flex flex-col items-center gap-1 ${item.active ? 'text-blue-600' : 'text-slate-400'}`}>
-                    <item.icon size={20} />
-                    <span className="text-[9px] font-bold tracking-tighter">{item.label}</span>
-                </button>
-            ))}
-        </div>
-    );
-}
+}

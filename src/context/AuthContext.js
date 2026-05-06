@@ -22,17 +22,45 @@ function readStoredAuthUser() {
 }
 
 export function AuthProvider({ children }) {
-    const [user, setUser] = useState(null);  // Initialize as null (matches server)
+    const [user, setUser] = useState(readStoredAuthUser());  // Initialize with stored user if available
     const [loading, setLoading] = useState(true);
     const router = useRouter();
 
     useEffect(() => {
-        const frame = requestAnimationFrame(() => {
-            setUser(readStoredAuthUser());
-            setLoading(false);
-        });
+        const fetchMe = async () => {
+            const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+            if (!token) {
+                setLoading(false);
+                return;
+            }
 
-        return () => cancelAnimationFrame(frame);
+            try {
+                const res = await fetch('https://demo-dentist-main-adaeep.free.laravel.cloud/api/me', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Accept': 'application/json'
+                    }
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    console.log('User data from /api/me:', data);
+                    const userData = data.user || data;
+                    setUser(userData);
+                    const storage = localStorage.getItem('auth_token') ? localStorage : sessionStorage;
+                    storage.setItem('user', JSON.stringify(userData));
+                } else if (res.status === 401) {
+                    logout();
+                }
+            } catch (err) {
+                console.error('Fetch me error:', err);
+                setUser(readStoredAuthUser());
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchMe();
     }, []);
 
     const login = async (email, password, options = {}) => {
@@ -51,8 +79,31 @@ export function AuthProvider({ children }) {
                 sessionStorage.removeItem('auth_token');
                 sessionStorage.removeItem('user');
                 storage.setItem('auth_token', data.token);
-                storage.setItem('user', JSON.stringify(data.user));
-                setUser(data.user);
+
+                // Fetch full profile immediately after login
+                try {
+                    const meRes = await fetch('https://demo-dentist-main-adaeep.free.laravel.cloud/api/me', {
+                        headers: {
+                            'Authorization': `Bearer ${data.token}`,
+                            'Accept': 'application/json'
+                        }
+                    });
+                    if (meRes.ok) {
+                        const meData = await meRes.json();
+                        const fullUser = meData.user || meData;
+                        console.log('Full user profile:', fullUser);
+                        storage.setItem('user', JSON.stringify(fullUser));
+                        setUser(fullUser);
+                    } else {
+                        storage.setItem('user', JSON.stringify(data.user));
+                        setUser(data.user);
+                    }
+                } catch (err) {
+                    console.error('Fetch me after login error:', err);
+                    storage.setItem('user', JSON.stringify(data.user));
+                    setUser(data.user);
+                }
+
                 router.push('/admin');
                 return { success: true };
             } else {
