@@ -4,26 +4,39 @@ import { useRouter } from 'next/navigation';
 
 const AuthContext = createContext();
 
+function readStoredAuthUser() {
+    const storedUser =
+        localStorage.getItem('user') || sessionStorage.getItem('user');
+    const token =
+        localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+
+    if (!storedUser || !token) {
+        return null;
+    }
+
+    try {
+        return JSON.parse(storedUser);
+    } catch {
+        return null;
+    }
+}
+
 export function AuthProvider({ children }) {
     const [user, setUser] = useState(null);  // Initialize as null (matches server)
     const [loading, setLoading] = useState(true);
     const router = useRouter();
 
     useEffect(() => {
-        // This only runs on the client after hydration
-        const storedUser = localStorage.getItem('user');
-        const token = localStorage.getItem('auth_token');
-        if (storedUser && token) {
-            try {
-                setUser(JSON.parse(storedUser));
-            } catch (e) {
-                setUser(null);
-            }
-        }
-        setLoading(false);
+        const frame = requestAnimationFrame(() => {
+            setUser(readStoredAuthUser());
+            setLoading(false);
+        });
+
+        return () => cancelAnimationFrame(frame);
     }, []);
 
-    const login = async (email, password) => {
+    const login = async (email, password, options = {}) => {
+        const { rememberMe = true } = options;
         try {
             const res = await fetch('https://demo-dentist-main-adaeep.free.laravel.cloud/api/login', {
                 method: 'POST',
@@ -32,8 +45,13 @@ export function AuthProvider({ children }) {
             });
             const data = await res.json();
             if (res.ok) {
-                localStorage.setItem('auth_token', data.token);
-                localStorage.setItem('user', JSON.stringify(data.user));
+                const storage = rememberMe ? localStorage : sessionStorage;
+                localStorage.removeItem('auth_token');
+                localStorage.removeItem('user');
+                sessionStorage.removeItem('auth_token');
+                sessionStorage.removeItem('user');
+                storage.setItem('auth_token', data.token);
+                storage.setItem('user', JSON.stringify(data.user));
                 setUser(data.user);
                 router.push('/admin');
                 return { success: true };
@@ -41,6 +59,7 @@ export function AuthProvider({ children }) {
                 return { success: false, message: data.message || 'Login failed' };
             }
         } catch (err) {
+            console.error('Login error:', err);
             return { success: false, message: 'An error occurred during login' };
         }
     };
@@ -48,6 +67,8 @@ export function AuthProvider({ children }) {
     const logout = () => {
         localStorage.removeItem('auth_token');
         localStorage.removeItem('user');
+        sessionStorage.removeItem('auth_token');
+        sessionStorage.removeItem('user');
         setUser(null);
         router.push('/admin/login');
     };
