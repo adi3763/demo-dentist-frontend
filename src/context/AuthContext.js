@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 const AuthContext = createContext();
 
 function readStoredAuthUser() {
+    if (typeof window === 'undefined') return null;
+
     const storedUser =
         localStorage.getItem('user') || sessionStorage.getItem('user');
     const token =
@@ -22,12 +24,19 @@ function readStoredAuthUser() {
 }
 
 export function AuthProvider({ children }) {
-    const [user, setUser] = useState(readStoredAuthUser());  // Initialize with stored user if available
+    const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const router = useRouter();
 
     useEffect(() => {
+        // Initialize user from storage on mount
+        const stored = readStoredAuthUser();
+        if (stored) {
+            setUser(stored);
+        }
+
         const fetchMe = async () => {
+            if (typeof window === 'undefined') return;
             const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
             if (!token) {
                 setLoading(false);

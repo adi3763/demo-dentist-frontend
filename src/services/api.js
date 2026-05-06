@@ -51,7 +51,7 @@ const apiService = {
 
     // Doctor APIs
     createDoctor: async (doctorData) => {
-        const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+        const token = typeof window !== 'undefined' ? (localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')) : null;
         const response = await fetch(`${BASE_URL}/admin/users`, {
             method: 'POST',
             headers: {
@@ -65,7 +65,7 @@ const apiService = {
     },
 
     getDoctors: async (filter = '') => {
-        const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+        const token = typeof window !== 'undefined' ? (localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')) : null;
         const url = filter ? `${BASE_URL}/admin/users?filter=${filter}` : `${BASE_URL}/admin/users`;
         const response = await fetch(url, {
             headers: {
@@ -77,7 +77,7 @@ const apiService = {
     },
 
     toggleDoctorStatus: async (id) => {
-        const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+        const token = typeof window !== 'undefined' ? (localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')) : null;
         const response = await fetch(`${BASE_URL}/admin/users/${id}/toggle`, {
             method: 'PATCH',
             headers: {
