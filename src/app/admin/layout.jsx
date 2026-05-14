@@ -4,11 +4,11 @@ import { useAuth } from '@/context/AuthContext';
 import { useRouter, usePathname } from 'next/navigation';
 import Sidebar from './components/Sidebar';
 import { TopNav } from './components/TopHeader';
-import { LayoutDashboard, Users, CalendarDays, Activity, LogOut } from 'lucide-react';
+import { LayoutDashboard, Users, CalendarDays, Activity, LogOut, Stethoscope } from 'lucide-react';
 
 function NavItem({ icon: Icon, label, active = false, onClick }) {
   return (
-    <button 
+    <button
       onClick={onClick}
       className={`flex flex-col items-center gap-1 ${active ? 'text-blue-600' : 'text-slate-400'} hover:text-blue-500 transition-colors`}
     >
@@ -60,7 +60,7 @@ export default function AdminLayout({ children }) {
     <div className="flex h-screen bg-[#f8fafc] overflow-hidden">
       {/* Sidebar Overlay for Mobile */}
       {sidebarOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
@@ -83,6 +83,7 @@ export default function AdminLayout({ children }) {
         <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-2 py-3 flex justify-around items-center z-50">
           <NavItem icon={LayoutDashboard} label="Home" active={pathname === '/admin'} onClick={() => router.push('/admin')} />
           <NavItem icon={Users} label="Doctors" active={pathname === '/admin/doctors'} onClick={() => router.push('/admin/doctors')} />
+          <NavItem icon={Stethoscope} label="Services" active={pathname === '/admin/services'} onClick={() => router.push('/admin/services')} />
           <NavItem icon={CalendarDays} label="Appts" active={pathname === '/admin/appointments'} onClick={() => router.push('/admin/appointments')} />
           <NavItem icon={Activity} label="Settings" active={pathname === '/admin/settings'} onClick={() => router.push('/admin/settings')} />
           <NavItem icon={LogOut} label="Logout" onClick={logout} />

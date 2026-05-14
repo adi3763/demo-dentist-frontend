@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, Calendar, Settings, HelpCircle, LogOut, X } from 'lucide-react';
+import { LayoutDashboard, Users, Calendar, Settings, HelpCircle, LogOut, X, Stethoscope } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
 
 export default function Sidebar({ logout, isOpen, onClose }) {
@@ -8,7 +8,7 @@ export default function Sidebar({ logout, isOpen, onClose }) {
     const menuItems = [
         { icon: LayoutDashboard, label: 'Dashboard', href: '/admin' },
         { icon: Users, label: 'Doctors', href: '/admin/doctors' },
-
+        { icon: Stethoscope, label: 'Services', href: '/admin/services' },
         { icon: Calendar, label: 'Appointments', href: '/admin/appointments' },
         { icon: Settings, label: 'Settings', href: '/admin/settings' },
         { icon: HelpCircle, label: 'Help Center', href: '/admin/help' },

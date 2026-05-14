@@ -64,9 +64,23 @@ const apiService = {
         return response;
     },
 
-    getDoctors: async (filter = '') => {
+    getDoctors: async (filter = '', isAdmin = true) => {
         const token = typeof window !== 'undefined' ? (localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')) : null;
-        const url = filter ? `${BASE_URL}/admin/users?filter=${filter}` : `${BASE_URL}/admin/users`;
+        // Admins use /admin/users (full control); doctors use /doctors (view-only, no admin guard)
+        const base = isAdmin ? `${BASE_URL}/admin/users` : `${BASE_URL}/doctors`;
+        const url = filter ? `${base}?filter=${filter}` : base;
+        const response = await fetch(url, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/json',
+            },
+        });
+        return response;
+    },
+
+    getDoctorById: async (id, isAdmin = true) => {
+        const token = typeof window !== 'undefined' ? (localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')) : null;
+        const url = isAdmin ? `${BASE_URL}/admin/users/${id}` : `${BASE_URL}/doctors/${id}`;
         const response = await fetch(url, {
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -84,6 +98,33 @@ const apiService = {
                 'Authorization': `Bearer ${token}`,
                 'Accept': 'application/json',
             },
+        });
+        return response;
+    },
+
+    // Services APIs
+    getServices: async () => {
+        const token = typeof window !== 'undefined' ? (localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')) : null;
+        const response = await fetch(`${BASE_URL}/services`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/json',
+            },
+        });
+        return response;
+    },
+
+    // Public APIs for Booking
+    getPublicDoctors: async () => {
+        const response = await fetch(`${BASE_URL}/doctors`, {
+            headers: { 'Accept': 'application/json' },
+        });
+        return response;
+    },
+
+    getDoctorSlots: async (doctorId, date) => {
+        const response = await fetch(`${BASE_URL}/slots?doctor_id=${doctorId}&date=${date}`, {
+            headers: { 'Accept': 'application/json' },
         });
         return response;
     },

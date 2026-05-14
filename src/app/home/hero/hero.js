@@ -1,13 +1,65 @@
-import React from 'react';
+'use client';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import styles from './hero.module.css';
 import { FaWhatsapp } from 'react-icons/fa'; 
+import apiService from '@/services/api';
 
 const Hero = () => {
   // WhatsApp Configuration
   const phoneNumber = "917024934163"; 
   const message = "Hello Dr. Priya Sharma, I would like to inquire about dental services.";
   const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+
+  // Booking Form State
+  const [doctors, setDoctors] = useState([]);
+  const [selectedDoctor, setSelectedDoctor] = useState('');
+  const [selectedDate, setSelectedDate] = useState('');
+  const [slots, setSlots] = useState([]);
+  const [loadingSlots, setLoadingSlots] = useState(false);
+
+  // Fetch doctors on mount
+  useEffect(() => {
+    const fetchDoctors = async () => {
+      try {
+        const res = await apiService.getPublicDoctors();
+        const data = await res.json();
+        if (res.ok) {
+          const docs = Array.isArray(data) ? data : (data.doctors || data.data || []);
+          setDoctors(docs);
+        }
+      } catch (err) {
+        console.error('Failed to load doctors:', err);
+      }
+    };
+    fetchDoctors();
+  }, []);
+
+  // Fetch slots when doctor or date changes
+  useEffect(() => {
+    const fetchSlots = async () => {
+      if (!selectedDoctor || !selectedDate) {
+        setSlots([]);
+        return;
+      }
+      setLoadingSlots(true);
+      try {
+        const res = await apiService.getDoctorSlots(selectedDoctor, selectedDate);
+        const data = await res.json();
+        if (res.ok) {
+          setSlots(data.slots || []);
+        } else {
+          setSlots([]);
+        }
+      } catch (err) {
+        console.error('Failed to fetch slots:', err);
+        setSlots([]);
+      } finally {
+        setLoadingSlots(false);
+      }
+    };
+    fetchSlots();
+  }, [selectedDoctor, selectedDate]);
 
   return (
     <div className={styles.heroWrapper}>
@@ -70,6 +122,16 @@ const Hero = () => {
             </div>
 
             <div className={styles.inputGroup}>
+              <label>DOCTOR</label>
+              <select value={selectedDoctor} onChange={(e) => setSelectedDoctor(e.target.value)}>
+                <option value="">Select Doctor</option>
+                {doctors.map(doc => (
+                  <option key={doc.id} value={doc.id}>{doc.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className={styles.inputGroup}>
               <label>SERVICE</label>
               <select>
                 <option>General Checkup</option>
@@ -80,30 +142,37 @@ const Hero = () => {
 
             <div className={styles.inputGroup}>
               <label>DATE</label>
-              <input type="date" />
+              <input 
+                type="date" 
+                value={selectedDate} 
+                onChange={(e) => setSelectedDate(e.target.value)} 
+                min={new Date().toISOString().split('T')[0]} 
+              />
             </div>
 
             <div className={styles.inputGroup}>
               <label>TIME SLOT</label>
-              <select>
-                <option>09:00 AM - 09:30 AM</option>
-                <option>09:30 AM - 10:00 AM</option>
-                <option>10:00 AM - 10:30 AM</option>
-                <option>10:30 AM - 11:00 AM</option>
-                <option>11:00 AM - 11:30 AM</option>
-                <option>11:30 AM - 12:00 PM</option>
-                <option>12:00 PM - 12:30 PM</option>
-                <option>12:30 PM - 01:00 PM</option>
-                <option>01:00 PM - 01:30 PM</option>
-                <option>01:30 PM - 02:00 PM</option>
-                <option>02:00 PM - 02:30 PM</option>
-                <option>02:30 PM - 03:00 PM</option>
-                <option>03:00 PM - 03:30 PM</option>
-                <option>03:30 PM - 04:00 PM</option>
-                <option>04:00 PM - 04:30 PM</option>
-                <option>04:30 PM - 05:00 PM</option>
-                <option>05:00 PM - 05:30 PM</option>
-                <option>05:30 PM - 06:00 PM</option>
+              <select disabled={!selectedDoctor || !selectedDate || loadingSlots || slots.length === 0}>
+                {!selectedDoctor || !selectedDate ? (
+                  <option>Select doctor & date first</option>
+                ) : loadingSlots ? (
+                  <option>Loading slots...</option>
+                ) : slots.length === 0 ? (
+                  <option>No slots available</option>
+                ) : (
+                  <>
+                    <option value="">Select Time Slot</option>
+                    {slots.map(slot => (
+                      <option 
+                        key={slot.start_time} 
+                        value={slot.start_time} 
+                        disabled={!slot.available}
+                      >
+                        {slot.label || `${slot.start_time} - ${slot.end_time}`} {!slot.available && '(Booked)'}
+                      </option>
+                    ))}
+                  </>
+                )}
               </select>
             </div>
 

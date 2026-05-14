@@ -8,6 +8,38 @@ import AddDoctorModal from '../components/AddDoctorModal';
 import DoctorDetailModal from '../components/DoctorDetailModal';
 import apiService from '@/services/api';
 
+// Normalize flat /doctors response into the nested shape DoctorRow & DoctorDetailModal expect.
+// If a profile object already exists, passes through unchanged.
+function normalizeDoctor(d) {
+    if (d?.profile && typeof d.profile === 'object') {
+        const p = d.profile;
+        if (typeof p.languages === 'string') {
+            try { p.languages = JSON.parse(p.languages); } catch { p.languages = []; }
+        }
+        if (typeof p.available_days === 'string') {
+            try { p.available_days = JSON.parse(p.available_days); } catch { p.available_days = []; }
+        }
+        return d;
+    }
+    return {
+        ...d,
+        profile: {
+            specialization: d.specialization || '',
+            qualification: d.qualification || '',
+            experience_years: d.experience_years || '',
+            consultation_fee: d.consultation_fee || '',
+            address: d.address || '',
+            city: d.city || '',
+            state: d.state || '',
+            pincode: d.pincode || '',
+            languages: Array.isArray(d.languages) ? d.languages : (typeof d.languages === 'string' ? JSON.parse(d.languages || '[]') : []),
+            available_days: Array.isArray(d.available_days) ? d.available_days : (typeof d.available_days === 'string' ? JSON.parse(d.available_days || '[]') : []),
+            bio: d.bio || '',
+            photo: d.photo || '',
+        },
+    };
+}
+
 export default function DoctorManagement() {
     const { user } = useAuth();
     const isAdmin = user?.role === 'admin' || user?.role === 'clinic administrator';
@@ -23,15 +55,16 @@ export default function DoctorManagement() {
     const [statusFilter, setStatusFilter] = useState(''); // '' for All, 'active' for Active
     const PAGE_SIZE = 10;
 
+
     const fetchDoctors = useCallback(async () => {
         setLoading(true);
         setError('');
         try {
-            const res = await apiService.getDoctors(statusFilter);
+            const res = await apiService.getDoctors(statusFilter, isAdmin);
             const data = await res.json();
             if (res.ok) {
-                // handle both { data: [...] } and direct array responses
-                setDoctors(Array.isArray(data) ? data : data.data || data.users || []);
+                const raw = Array.isArray(data) ? data : data.data || data.users || data.doctors || [];
+                setDoctors(raw.map(normalizeDoctor));
             } else {
                 setError(data.message || 'Failed to load doctors.');
             }
@@ -40,9 +73,29 @@ export default function DoctorManagement() {
         } finally {
             setLoading(false);
         }
-    }, [statusFilter]);
+    }, [statusFilter, isAdmin]);
 
     useEffect(() => { fetchDoctors(); }, [fetchDoctors]);
+
+    // Open modal immediately with list data, then enrich with full profile fetch (admins only)
+    const handleDoctorClick = async (doc) => {
+        setSelectedDoctor(doc); // shows modal instantly with data from the list
+        
+        // Backend restricts doctors from viewing other individual doctor endpoints (returns 404).
+        // Since the /doctors list already returns the full profile, we just skip the fetch.
+        if (!isAdmin) return;
+
+        try {
+            const res = await apiService.getDoctorById(doc.id, isAdmin);
+            if (res.ok) {
+                const data = await res.json();
+                const full = data.user || data.data || data;
+                if (full && (full.id || full.name)) {
+                    setSelectedDoctor(normalizeDoctor(full));
+                }
+            }
+        } catch { /* network error — keep current data */ }
+    };
 
     const handleToggle = async (doctor) => {
         setToggling(doctor.id);
@@ -130,13 +183,13 @@ export default function DoctorManagement() {
                         <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
                     </button>
                     <div className="flex bg-slate-100 p-1 rounded-2xl border border-slate-200">
-                        <button 
+                        <button
                             onClick={() => { setStatusFilter(''); setCurrentPage(1); }}
                             className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${statusFilter === '' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                         >
                             All
                         </button>
-                        <button 
+                        <button
                             onClick={() => { setStatusFilter('active'); setCurrentPage(1); }}
                             className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${statusFilter === 'active' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                         >
@@ -216,7 +269,7 @@ export default function DoctorManagement() {
                                     key={doc.id}
                                     doctor={doc}
                                     isAdmin={isAdmin}
-                                    onClick={() => setSelectedDoctor(doc)}
+                                    onClick={() => handleDoctorClick(doc)}
                                     onToggle={handleToggle}
                                     toggling={toggling}
                                 />
@@ -232,7 +285,7 @@ export default function DoctorManagement() {
                     {paginated.length === 0
                         ? <p className="text-center py-12 text-sm font-bold text-slate-400">No doctors found</p>
                         : paginated.map((doc) => (
-                            <div key={doc.id} onClick={() => setSelectedDoctor(doc)}>
+                            <div key={doc.id} onClick={() => handleDoctorClick(doc)}>
                                 <DoctorCardMobile doctor={doc} />
                             </div>
                         ))
@@ -269,9 +322,8 @@ export default function DoctorManagement() {
                                         <button
                                             key={item}
                                             onClick={() => setCurrentPage(item)}
-                                            className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-all ${
-                                                item === safePage ? 'bg-blue-600 text-white shadow-md' : 'hover:bg-slate-100 text-slate-600'
-                                            }`}
+                                            className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-all ${item === safePage ? 'bg-blue-600 text-white shadow-md' : 'hover:bg-slate-100 text-slate-600'
+                                                }`}
                                         >
                                             {item}
                                         </button>

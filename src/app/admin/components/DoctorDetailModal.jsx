@@ -143,7 +143,7 @@ export default function DoctorDetailModal({ doctor, isOpen, onClose, isAdmin, on
                             </p>
                             <div className="flex gap-2 flex-wrap">
                                 {DAY_ORDER.map(day => {
-                                    const active = availableDays.includes(day);
+                                    const active = availableDays.some(d => typeof d === 'string' && d.toLowerCase().startsWith(day.toLowerCase()));
                                     return (
                                         <span key={day} className={`px-3 py-1.5 rounded-xl text-[11px] font-black transition-all ${active ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-400'}`}>
                                             {day}
