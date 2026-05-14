@@ -128,6 +128,25 @@ const apiService = {
         });
         return response;
     },
+
+    getPublicServices: async () => {
+        const response = await fetch(`${BASE_URL}/services`, {
+            headers: { 'Accept': 'application/json' },
+        });
+        return response;
+    },
+
+    bookAppointment: async (data) => {
+        const response = await fetch(`${BASE_URL}/appointments`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+            },
+            body: JSON.stringify(data),
+        });
+        return response;
+    },
 };
 
 export default apiService;

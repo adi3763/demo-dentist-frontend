@@ -12,27 +12,45 @@ const Hero = () => {
   const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
 
   // Booking Form State
+  const [patientName, setPatientName] = useState('');
+  const [patientPhone, setPatientPhone] = useState('');
+  
   const [doctors, setDoctors] = useState([]);
   const [selectedDoctor, setSelectedDoctor] = useState('');
+  
+  const [services, setServices] = useState([]);
+  const [selectedService, setSelectedService] = useState('');
+  
   const [selectedDate, setSelectedDate] = useState('');
   const [slots, setSlots] = useState([]);
+  const [selectedSlot, setSelectedSlot] = useState('');
   const [loadingSlots, setLoadingSlots] = useState(false);
+  
+  const [bookingStatus, setBookingStatus] = useState({ loading: false, success: false, error: '' });
 
-  // Fetch doctors on mount
+  // Fetch doctors and services on mount
   useEffect(() => {
-    const fetchDoctors = async () => {
+    const fetchInitialData = async () => {
       try {
-        const res = await apiService.getPublicDoctors();
-        const data = await res.json();
-        if (res.ok) {
-          const docs = Array.isArray(data) ? data : (data.doctors || data.data || []);
-          setDoctors(docs);
+        const [docsRes, srvsRes] = await Promise.all([
+          apiService.getPublicDoctors(),
+          apiService.getPublicServices()
+        ]);
+        
+        if (docsRes.ok) {
+          const docsData = await docsRes.json();
+          setDoctors(Array.isArray(docsData) ? docsData : (docsData.doctors || docsData.data || []));
+        }
+        
+        if (srvsRes.ok) {
+          const srvsData = await srvsRes.json();
+          setServices(Array.isArray(srvsData) ? srvsData : (srvsData.services || srvsData.data || []));
         }
       } catch (err) {
-        console.error('Failed to load doctors:', err);
+        console.error('Failed to load initial data:', err);
       }
     };
-    fetchDoctors();
+    fetchInitialData();
   }, []);
 
   // Fetch slots when doctor or date changes
@@ -40,6 +58,7 @@ const Hero = () => {
     const fetchSlots = async () => {
       if (!selectedDoctor || !selectedDate) {
         setSlots([]);
+        setSelectedSlot('');
         return;
       }
       setLoadingSlots(true);
@@ -56,10 +75,55 @@ const Hero = () => {
         setSlots([]);
       } finally {
         setLoadingSlots(false);
+        setSelectedSlot('');
       }
     };
     fetchSlots();
   }, [selectedDoctor, selectedDate]);
+
+  const handleBookAppointment = async () => {
+    if (!patientName || !patientPhone || !selectedDoctor || !selectedService || !selectedDate || !selectedSlot) {
+      setBookingStatus({ loading: false, success: false, error: 'Please fill all required fields.' });
+      return;
+    }
+
+    setBookingStatus({ loading: true, success: false, error: '' });
+
+    // Backend expects H:i format (e.g. "09:00"), but slot.start_time often includes seconds (e.g. "09:00:00")
+    const formattedTime = selectedSlot.length > 5 ? selectedSlot.substring(0, 5) : selectedSlot;
+
+    try {
+      const res = await apiService.bookAppointment({
+        doctor_id: parseInt(selectedDoctor),
+        patient_name: patientName,
+        patient_phone: patientPhone,
+        appointment_date: selectedDate,
+        appointment_time: formattedTime,
+        start_time: formattedTime, // Added because backend validation requires this exact field
+        service_id: parseInt(selectedService),
+        patient_email: patientName.toLowerCase().replace(/\s+/g, '') + '@example.com', // placeholder if not provided
+        notes: "Booked from website quick form",
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setBookingStatus({ loading: false, success: true, error: '' });
+        // Reset form
+        setPatientName('');
+        setPatientPhone('');
+        setSelectedDoctor('');
+        setSelectedService('');
+        setSelectedDate('');
+        setSelectedSlot('');
+        setSlots([]);
+        setTimeout(() => setBookingStatus(prev => ({ ...prev, success: false })), 5000);
+      } else {
+        setBookingStatus({ loading: false, success: false, error: data.message || 'Failed to book appointment.' });
+      }
+    } catch (err) {
+      setBookingStatus({ loading: false, success: false, error: 'Network error. Please try again later.' });
+    }
+  };
 
   return (
     <div className={styles.heroWrapper}>
@@ -113,12 +177,22 @@ const Hero = () => {
           <div className={styles.formGrid}>
             <div className={styles.inputGroup}>
               <label>NAME</label>
-              <input type="text" placeholder="Full Name" />
+              <input 
+                type="text" 
+                placeholder="Full Name" 
+                value={patientName}
+                onChange={e => setPatientName(e.target.value)}
+              />
             </div>
             
             <div className={styles.inputGroup}>
               <label>PHONE</label>
-              <input type="tel" placeholder="+91 00000 00000" />
+              <input 
+                type="tel" 
+                placeholder="+91 00000 00000" 
+                value={patientPhone}
+                onChange={e => setPatientPhone(e.target.value)}
+              />
             </div>
 
             <div className={styles.inputGroup}>
@@ -133,10 +207,11 @@ const Hero = () => {
 
             <div className={styles.inputGroup}>
               <label>SERVICE</label>
-              <select>
-                <option>General Checkup</option>
-                <option>Root Canal</option>
-                <option>Teeth Whitening</option>
+              <select value={selectedService} onChange={(e) => setSelectedService(e.target.value)}>
+                <option value="">Select Service</option>
+                {services.map(srv => (
+                  <option key={srv.id} value={srv.id}>{srv.name}</option>
+                ))}
               </select>
             </div>
 
@@ -152,13 +227,17 @@ const Hero = () => {
 
             <div className={styles.inputGroup}>
               <label>TIME SLOT</label>
-              <select disabled={!selectedDoctor || !selectedDate || loadingSlots || slots.length === 0}>
+              <select 
+                value={selectedSlot}
+                onChange={e => setSelectedSlot(e.target.value)}
+                disabled={!selectedDoctor || !selectedDate || loadingSlots || slots.length === 0}
+              >
                 {!selectedDoctor || !selectedDate ? (
-                  <option>Select doctor & date first</option>
+                  <option value="">Select doctor & date first</option>
                 ) : loadingSlots ? (
-                  <option>Loading slots...</option>
+                  <option value="">Loading slots...</option>
                 ) : slots.length === 0 ? (
-                  <option>No slots available</option>
+                  <option value="">No slots available</option>
                 ) : (
                   <>
                     <option value="">Select Time Slot</option>
@@ -176,10 +255,26 @@ const Hero = () => {
               </select>
             </div>
 
-            <button className={styles.submitBookingBtn}>
-              Book Now
+            <button 
+              className={styles.submitBookingBtn} 
+              onClick={handleBookAppointment}
+              disabled={bookingStatus.loading}
+            >
+              {bookingStatus.loading ? 'Booking...' : 'Book Now'}
             </button>
           </div>
+
+          {/* Feedback Messages */}
+          {bookingStatus.error && (
+            <div className="mt-4 p-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-xl font-medium">
+              {bookingStatus.error}
+            </div>
+          )}
+          {bookingStatus.success && (
+            <div className="mt-4 p-3 bg-emerald-50 border border-emerald-200 text-emerald-600 text-sm rounded-xl font-medium">
+              Appointment booked successfully! We will contact you shortly.
+            </div>
+          )}
         </div>
       </div>
 
