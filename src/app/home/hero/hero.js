@@ -116,7 +116,7 @@ const Hero = () => {
         setSelectedDate('');
         setSelectedSlot('');
         setSlots([]);
-        setTimeout(() => setBookingStatus(prev => ({ ...prev, success: false })), 5000);
+        // Removed the auto-dismiss timer so the modal stays open until "Done" is clicked
       } else {
         setBookingStatus({ loading: false, success: false, error: data.message || 'Failed to book appointment.' });
       }
@@ -270,13 +270,31 @@ const Hero = () => {
               {bookingStatus.error}
             </div>
           )}
-          {bookingStatus.success && (
-            <div className="mt-4 p-3 bg-emerald-50 border border-emerald-200 text-emerald-600 text-sm rounded-xl font-medium">
-              Appointment booked successfully! We will contact you shortly.
-            </div>
-          )}
         </div>
       </div>
+
+      {/* Success Modal Popup */}
+      {bookingStatus.success && (
+        <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-white rounded-[32px] p-8 max-w-sm w-full text-center shadow-2xl animate-in zoom-in-95 duration-300">
+            <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <svg className="w-10 h-10 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path>
+              </svg>
+            </div>
+            <h3 className="text-2xl font-black text-slate-800 mb-2">Booking Confirmed!</h3>
+            <p className="text-sm font-medium text-slate-500 mb-8 leading-relaxed">
+              Your appointment has been successfully scheduled. We will contact you shortly with more details.
+            </p>
+            <button 
+              onClick={() => setBookingStatus(prev => ({ ...prev, success: false }))}
+              className="w-full bg-indigo-600 text-white font-bold py-4 rounded-xl hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200 active:scale-95"
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Floating WhatsApp Icon */}
       <a 
