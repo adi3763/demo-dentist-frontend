@@ -1,10 +1,24 @@
 import { User, Settings, LogOut, ChevronRight } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
 import Link from 'next/link';
 
 export default function ProfileDropdown({ isOpen, user, onProfileClick, onSettingsClick, logout }) {
+    const router = useRouter();
+    const { user: currentUser } = useAuth();
+    const isAdmin = currentUser?.role === 'admin';
+
     if (!isOpen) return null;
 
     const menuItems = [];
+
+    const handleProfileClick = () => {
+        if (isAdmin) {
+            onProfileClick();
+        } else {
+            router.push('/admin/profile');
+        }
+    };
 
     return (
         <div className="absolute right-0 mt-3 w-72 bg-white rounded-[24px] shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-slate-100 py-3 z-[100] animate-in fade-in zoom-in duration-200 origin-top-right">
@@ -17,9 +31,9 @@ export default function ProfileDropdown({ isOpen, user, onProfileClick, onSettin
 
             {/* Menu Links */}
             <div className="px-2 space-y-1">
-                {/* View Profile Button - Opens Drawer */}
+                {/* View Profile Button - Opens Drawer or Page */}
                 <button
-                    onClick={onProfileClick}
+                    onClick={handleProfileClick}
                     className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 transition-all group"
                 >
                     <div className="flex items-center gap-3">

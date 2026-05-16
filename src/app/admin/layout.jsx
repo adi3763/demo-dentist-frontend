@@ -6,7 +6,7 @@ import Sidebar from './components/Sidebar';
 import { TopNav } from './components/TopHeader';
 import EditProfileDrawer from './components/EditProfileDrawer';
 import AccountSettingsModal from './components/AccountSettingsModal';
-import { LayoutDashboard, Users, CalendarDays, Activity, LogOut, Stethoscope } from 'lucide-react';
+import { LayoutDashboard, Users, CalendarDays, Activity, LogOut, Stethoscope, MessageSquare } from 'lucide-react';
 
 function NavItem({ icon: Icon, label, active = false, onClick }) {
   return (
@@ -27,6 +27,7 @@ export default function AdminLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const isAdmin = user?.role === 'admin';
 
   const publicRoutes = ['/admin/login', '/admin/forgot-password'];
   const isPublicRoute = publicRoutes.includes(pathname);
@@ -91,11 +92,22 @@ export default function AdminLayout({ children }) {
 
         {/* Mobile Bottom Navigation */}
         <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-2 py-3 flex justify-around items-center z-50">
-          <NavItem icon={LayoutDashboard} label="Home" active={pathname === '/admin'} onClick={() => router.push('/admin')} />
-          <NavItem icon={Users} label="Doctors" active={pathname === '/admin/doctors'} onClick={() => router.push('/admin/doctors')} />
-          <NavItem icon={Stethoscope} label="Services" active={pathname === '/admin/services'} onClick={() => router.push('/admin/services')} />
-          <NavItem icon={CalendarDays} label="Appts" active={pathname === '/admin/appointments'} onClick={() => router.push('/admin/appointments')} />
-          <NavItem icon={Activity} label="Settings" active={pathname === '/admin/settings'} onClick={() => router.push('/admin/settings')} />
+          {isAdmin ? (
+            <>
+              <NavItem icon={LayoutDashboard} label="Home" active={pathname === '/admin'} onClick={() => router.push('/admin')} />
+              <NavItem icon={Users} label="Doctors" active={pathname === '/admin/doctors'} onClick={() => router.push('/admin/doctors')} />
+              <NavItem icon={Stethoscope} label="Services" active={pathname === '/admin/services'} onClick={() => router.push('/admin/services')} />
+              <NavItem icon={CalendarDays} label="Appts" active={pathname === '/admin/appointments'} onClick={() => router.push('/admin/appointments')} />
+              <NavItem icon={MessageSquare} label="Contacts" active={pathname === '/admin/contacts'} onClick={() => router.push('/admin/contacts')} />
+            </>
+          ) : (
+            <>
+              <NavItem icon={Users} label="Profile" active={pathname === '/admin/profile'} onClick={() => router.push('/admin/profile')} />
+              <NavItem icon={Activity} label="Schedule" active={pathname === '/admin/schedule'} onClick={() => router.push('/admin/schedule')} />
+              <NavItem icon={CalendarDays} label="Appts" active={pathname === '/admin/appointments'} onClick={() => router.push('/admin/appointments')} />
+              <NavItem icon={Stethoscope} label="Services" active={pathname === '/admin/services'} onClick={() => router.push('/admin/services')} />
+            </>
+          )}
           <NavItem icon={LogOut} label="Logout" onClick={logout} />
         </nav>
       </main>

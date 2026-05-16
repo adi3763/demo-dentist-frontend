@@ -1,18 +1,31 @@
-import { LayoutDashboard, Users, Calendar, Settings, HelpCircle, LogOut, X, Stethoscope } from 'lucide-react';
+import { LayoutDashboard, Users, Calendar, Settings, HelpCircle, LogOut, X, Stethoscope, MessageSquare } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
 
+import { useAuth } from '@/context/AuthContext';
+
 export default function Sidebar({ logout, isOpen, onClose }) {
+    const { user } = useAuth();
     const router = useRouter();
     const pathname = usePathname();
+    const isAdmin = user?.role === 'admin';
 
-    const menuItems = [
+    const adminItems = [
         { icon: LayoutDashboard, label: 'Dashboard', href: '/admin' },
         { icon: Users, label: 'Doctors', href: '/admin/doctors' },
         { icon: Stethoscope, label: 'Services', href: '/admin/services' },
         { icon: Calendar, label: 'Appointments', href: '/admin/appointments' },
-        { icon: Settings, label: 'Settings', href: '/admin/settings' },
-        { icon: HelpCircle, label: 'Help Center', href: '/admin/help' },
+        { icon: MessageSquare, label: 'Contacts', href: '/admin/contacts' },
     ];
+
+    const doctorItems = [
+        { icon: Users, label: 'Profile', href: '/admin/profile' },
+        { icon: Calendar, label: 'Schedule', href: '/admin/schedule' },
+        { icon: LayoutDashboard, label: 'Appointments', href: '/admin/appointments' },
+        { icon: Users, label: 'Doctors', href: '/admin/doctors' },
+        { icon: Stethoscope, label: 'Services', href: '/admin/services' },
+    ];
+
+    const menuItems = isAdmin ? adminItems : doctorItems;
 
     return (
         <div className={`fixed inset-y-0 left-0 z-[60] w-64 bg-[#0f172a] text-slate-400 flex flex-col p-6 pb-24 lg:pb-6 transform transition-transform duration-300 lg:relative lg:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
