@@ -189,6 +189,7 @@ const apiService = {
         method: 'PATCH',
         headers: { 'X-Requested-With': 'XMLHttpRequest' },
         body: JSON.stringify(profileData)
+        
     }),
 
     uploadDoctorPhoto: (formData) => authenticatedFetch('/doctor/profile/photo', {
