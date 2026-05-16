@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { X, Camera, Clock, ChevronDown, Plus } from 'lucide-react';
+import { X, Camera, Clock, ChevronDown, Plus, Trash2, Calendar, Lock, Unlock, AlertCircle } from 'lucide-react';
 import apiService from '@/services/api';
 import { useAuth } from '@/context/AuthContext';
 
@@ -24,13 +24,17 @@ export default function EditProfileDrawer({ isOpen, onClose, user: initialUser }
     const [status, setStatus] = useState({ type: '', message: '' });
     const [photoLoading, setPhotoLoading] = useState(false);
     const [schedules, setSchedules] = useState([]);
+    const [blockedDates, setBlockedDates] = useState([]);
+    const [isUsingDefault, setIsUsingDefault] = useState(true);
+    const [defaultInfo, setDefaultInfo] = useState(null);
     const [scheduleLoading, setScheduleLoading] = useState(false);
-    const [isAddingSchedule, setIsAddingSchedule] = useState(false);
-    const [newSchedule, setNewSchedule] = useState({
-        date: '',
-        start_time: '09:00',
-        end_time: '09:30'
+    
+    // New Blocked Date State
+    const [newBlocked, setNewBlocked] = useState({
+        blocked_date: '',
+        reason: ''
     });
+    const [mutationLoading, setMutationLoading] = useState(false);
 
     useEffect(() => {
         if (isOpen) {
@@ -74,13 +78,89 @@ export default function EditProfileDrawer({ isOpen, onClose, user: initialUser }
             const response = await apiService.getDoctorSchedule();
             const data = await response.json();
             if (response.ok) {
-                setSchedules(data.schedules || []);
+                setSchedules(data.schedule || []);
+                setBlockedDates(data.blocked_dates || []);
+                setIsUsingDefault(data.using_default_schedule);
+                setDefaultInfo(data.default_schedule);
             }
         } catch (error) {
             console.error('Error fetching schedule:', error);
         } finally {
             setScheduleLoading(false);
         }
+    };
+
+    const handleCustomize = async () => {
+        setMutationLoading(true);
+        try {
+            const res = await apiService.saveDefaultSchedule();
+            if (res.ok) fetchSchedule();
+        } catch (error) {
+            console.error('Error customizing schedule:', error);
+        } finally {
+            setMutationLoading(false);
+        }
+    };
+
+    const handleToggleSlot = async (id) => {
+        if (!id) return;
+        try {
+            const res = await apiService.toggleScheduleSlot(id);
+            if (res.ok) fetchSchedule();
+        } catch (error) {
+            console.error('Error toggling slot:', error);
+        }
+    };
+
+    const handleDeleteSlot = async (id) => {
+        if (!id) return;
+        if (!confirm('Are you sure you want to delete this time slot?')) return;
+        try {
+            const res = await apiService.deleteScheduleSlot(id);
+            if (res.ok) fetchSchedule();
+        } catch (error) {
+            console.error('Error deleting slot:', error);
+        }
+    };
+
+    const handleAddBlockedDate = async (e) => {
+        e.preventDefault();
+        if (!newBlocked.blocked_date) return;
+        setMutationLoading(true);
+        try {
+            const res = await apiService.addBlockedDate(newBlocked);
+            if (res.ok) {
+                setNewBlocked({ blocked_date: '', reason: '' });
+                fetchSchedule();
+            }
+        } catch (error) {
+            console.error('Error adding blocked date:', error);
+        } finally {
+            setMutationLoading(false);
+        }
+    };
+
+    const handleDeleteBlockedDate = async (id) => {
+        try {
+            const res = await apiService.deleteBlockedDate(id);
+            if (res.ok) fetchSchedule();
+        } catch (error) {
+            console.error('Error deleting blocked date:', error);
+        }
+    };
+
+    const formatTime = (timeStr) => {
+        if (!timeStr) return '';
+        const [hours, minutes] = timeStr.split(':');
+        const h = parseInt(hours);
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        const displayH = h % 12 || 12;
+        return `${displayH}:${minutes} ${ampm}`;
+    };
+
+    const getDayName = (dayNum) => {
+        const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        return days[dayNum];
     };
 
     const handlePhotoClick = () => {
@@ -418,102 +498,163 @@ export default function EditProfileDrawer({ isOpen, onClose, user: initialUser }
                         </div>
                     </div>
 
-                    {/* Real Availability Schedule Section from API */}
-                    <div className="space-y-4 pt-4 border-t border-slate-100">
-                        <div className="flex items-center justify-between">
+                    {/* --- SCHEDULE SECTION --- */}
+                    <div className="space-y-4 pt-6 border-t border-slate-100">
+                        <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-3">
-                                <div className="w-1.5 h-6 bg-emerald-500 rounded-full" />
-                                <h3 className="text-sm font-black text-slate-800 uppercase tracking-wider">Upcoming Schedule</h3>
+                                <div className="w-1.5 h-6 bg-blue-600 rounded-full" />
+                                <h3 className="text-sm font-black text-slate-800 uppercase tracking-wider">Clinical Schedule</h3>
                             </div>
-                            <button 
-                                type="button"
-                                onClick={() => setIsAddingSchedule(!isAddingSchedule)}
-                                className="text-[10px] font-black text-blue-600 uppercase tracking-widest bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg border border-blue-100 transition-all flex items-center gap-1.5"
-                            >
-                                {isAddingSchedule ? <X size={12} strokeWidth={3} /> : <Plus size={12} strokeWidth={3} />}
-                                {isAddingSchedule ? 'Cancel' : 'Add Slot'}
-                            </button>
                         </div>
 
-                        {/* Add Schedule Form */}
-                        {isAddingSchedule && (
-                            <form onSubmit={handleAddSchedule} className="p-5 bg-blue-50/50 border border-blue-100 rounded-[24px] space-y-4 animate-in slide-in-from-top-4 duration-300">
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                    <div className="space-y-1">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Date</label>
-                                        <input 
-                                            type="date" 
-                                            required
-                                            value={newSchedule.date}
-                                            onChange={e => setNewSchedule(prev => ({...prev, date: e.target.value}))}
-                                            className="w-full bg-white border border-blue-200/50 rounded-xl py-2 px-3 text-xs font-bold text-slate-700 focus:border-blue-500 outline-none transition-all"
-                                        />
+                        {scheduleLoading ? (
+                            <div className="space-y-3">
+                                <div className="h-32 bg-slate-50 rounded-[28px] animate-pulse border border-slate-100" />
+                                <div className="h-20 bg-slate-50 rounded-[28px] animate-pulse border border-slate-100" />
+                            </div>
+                        ) : isUsingDefault ? (
+                            /* DEFAULT SCHEDULE VIEW */
+                            <div className="p-6 bg-slate-50/50 border border-slate-100 rounded-[32px] space-y-4">
+                                <div className="flex items-start gap-4">
+                                    <div className="w-10 h-10 rounded-2xl bg-blue-50 flex items-center justify-center flex-shrink-0">
+                                        <Clock className="text-blue-600" size={20} />
                                     </div>
-                                    <div className="space-y-1">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Start Time</label>
-                                        <input 
-                                            type="time" 
-                                            required
-                                            value={newSchedule.start_time}
-                                            onChange={e => setNewSchedule(prev => ({...prev, start_time: e.target.value}))}
-                                            className="w-full bg-white border border-blue-200/50 rounded-xl py-2 px-3 text-xs font-bold text-slate-700 focus:border-blue-500 outline-none transition-all"
-                                        />
-                                    </div>
-                                    <div className="space-y-1">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">End Time</label>
-                                        <input 
-                                            type="time" 
-                                            required
-                                            value={newSchedule.end_time}
-                                            onChange={e => setNewSchedule(prev => ({...prev, end_time: e.target.value}))}
-                                            className="w-full bg-white border border-blue-200/50 rounded-xl py-2 px-3 text-xs font-bold text-slate-700 focus:border-blue-500 outline-none transition-all"
-                                        />
+                                    <div>
+                                        <h4 className="text-sm font-bold text-slate-800">Regular Clinic Schedule</h4>
+                                        <p className="text-xs text-slate-500 font-medium mt-0.5 leading-relaxed">
+                                            {defaultInfo?.days || 'Monday to Saturday'} <br />
+                                            {defaultInfo?.hours || '09:00 AM - 05:00 PM'} • {defaultInfo?.slot_minutes || 30} min slots
+                                        </p>
                                     </div>
                                 </div>
-                                <button 
-                                    type="submit"
-                                    disabled={scheduleLoading}
-                                    className="w-full py-2.5 bg-blue-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-md shadow-blue-200 hover:bg-blue-700 active:scale-[0.98] transition-all disabled:opacity-50"
-                                >
-                                    {scheduleLoading ? 'Saving...' : 'Confirm Slot'}
-                                </button>
-                            </form>
-                        )}
-
-                        {scheduleLoading ? (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                {[1, 2, 3, 4].map(i => (
-                                    <div key={i} className="h-20 bg-slate-50 rounded-2xl animate-pulse border border-slate-100" />
-                                ))}
-                            </div>
-                        ) : schedules.length > 0 ? (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                {schedules.map((slot) => (
-                                    <div key={slot.id} className="p-4 bg-white border border-slate-100 rounded-2xl shadow-sm hover:border-emerald-200 transition-all group relative overflow-hidden">
-                                        {/* Status indicator */}
-                                        <div className={`absolute top-0 left-0 w-1 h-full ${slot.is_active ? 'bg-emerald-500' : 'bg-slate-300'}`} />
-                                        
-                                        <div className="flex flex-col gap-1">
-                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                                                {new Date(slot.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
-                                                {!slot.is_active && <span className="text-red-500 font-black">(Disabled)</span>}
-                                            </p>
-                                            <div className="flex items-center gap-2 mt-1">
-                                                <Clock size={14} className="text-emerald-500" />
-                                                <p className="text-sm font-black text-slate-800">
-                                                    {slot.start_time.substring(0, 5)} — {slot.end_time.substring(0, 5)}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
+                                <div className="flex items-center gap-3 pt-2">
+                                    <button
+                                        type="button"
+                                        onClick={handleCustomize}
+                                        disabled={mutationLoading}
+                                        className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-[10px] font-black uppercase tracking-widest text-blue-600 hover:bg-blue-50 hover:border-blue-100 transition-all shadow-sm disabled:opacity-50"
+                                    >
+                                        {mutationLoading ? 'Processing...' : 'Customize Schedule'}
+                                    </button>
+                                </div>
                             </div>
                         ) : (
-                            <div className="p-8 text-center bg-slate-50/50 rounded-[32px] border border-dashed border-slate-200">
-                                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">No scheduled slots available</p>
-                                <p className="text-[10px] text-slate-400 mt-1">Please contact admin to add time slots</p>
+                            /* CUSTOM SCHEDULE VIEW */
+                            <div className="space-y-6">
+                                {[1, 2, 3, 4, 5, 6, 0].map(dayNum => {
+                                    const daySlots = schedules.filter(s => s.day_of_week === dayNum);
+                                    if (daySlots.length === 0) return null;
+
+                                    return (
+                                        <div key={dayNum} className="space-y-3">
+                                            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">{getDayName(dayNum)}</h4>
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                {daySlots.map(slot => (
+                                                    <div key={slot.id} className="p-4 bg-white border border-slate-100 rounded-[24px] shadow-sm flex items-center justify-between group hover:border-blue-100 transition-all">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className={`w-2 h-2 rounded-full ${slot.is_active ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+                                                            <span className="text-xs font-bold text-slate-700">{formatTime(slot.start_time)} — {formatTime(slot.end_time)}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleToggleSlot(slot.id)}
+                                                                title={slot.is_active ? 'Disable slot' : 'Enable slot'}
+                                                                className={`p-2 rounded-lg transition-colors ${slot.is_active ? 'text-slate-400 hover:bg-slate-50' : 'text-emerald-500 hover:bg-emerald-50'}`}
+                                                            >
+                                                                {slot.is_active ? <Lock size={14} /> : <Unlock size={14} />}
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleDeleteSlot(slot.id)}
+                                                                className="p-2 text-red-400 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors"
+                                                            >
+                                                                <Trash2 size={14} />
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
                             </div>
                         )}
+                    </div>
+
+                    {/* --- BLOCKED DATES SECTION --- */}
+                    <div className="space-y-4 pt-6 border-t border-slate-100">
+                        <div className="flex items-center gap-3">
+                            <div className="w-1.5 h-6 bg-red-500 rounded-full" />
+                            <h3 className="text-sm font-black text-slate-800 uppercase tracking-wider">Leave & Blocked Dates</h3>
+                        </div>
+
+                        {/* Blocked Dates List */}
+                        <div className="space-y-2">
+                            {blockedDates.length > 0 ? (
+                                blockedDates.map(bd => (
+                                    <div key={bd.id} className="flex items-center justify-between p-4 bg-red-50/30 border border-red-100/50 rounded-[24px]">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-9 h-9 rounded-xl bg-white border border-red-100 flex items-center justify-center text-red-500 shadow-sm">
+                                                <Calendar size={16} />
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-bold text-slate-800">{new Date(bd.blocked_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+                                                {bd.reason && <p className="text-[10px] font-medium text-slate-500 mt-0.5">{bd.reason}</p>}
+                                            </div>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleDeleteBlockedDate(bd.id)}
+                                            className="p-2 text-red-400 hover:bg-white hover:text-red-600 rounded-xl transition-all shadow-sm"
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="p-6 text-center border-2 border-dashed border-slate-100 rounded-[32px]">
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">No blocked dates scheduled</p>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Add Blocked Date Form */}
+                        <form onSubmit={handleAddBlockedDate} className="p-5 bg-white border border-slate-200 rounded-[28px] shadow-sm space-y-4 mt-4">
+                            <h4 className="text-xs font-bold text-slate-800 px-1 flex items-center gap-2">
+                                <AlertCircle size={14} className="text-blue-500" />
+                                Add Leave/Blocked Date
+                            </h4>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Date</label>
+                                    <input
+                                        type="date"
+                                        required
+                                        value={newBlocked.blocked_date}
+                                        onChange={e => setNewBlocked(prev => ({ ...prev, blocked_date: e.target.value }))}
+                                        className="w-full bg-slate-50/50 border border-slate-200 rounded-xl py-2 px-3 text-sm font-bold text-slate-700 focus:bg-white focus:border-blue-500 outline-none transition-all"
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Reason (Optional)</label>
+                                    <input
+                                        type="text"
+                                        placeholder="e.g. Conference, Personal"
+                                        value={newBlocked.reason}
+                                        onChange={e => setNewBlocked(prev => ({ ...prev, reason: e.target.value }))}
+                                        className="w-full bg-slate-50/50 border border-slate-200 rounded-xl py-2 px-3 text-sm font-bold text-slate-700 focus:bg-white focus:border-blue-500 outline-none transition-all"
+                                    />
+                                </div>
+                            </div>
+                            <button
+                                type="submit"
+                                disabled={mutationLoading}
+                                className="w-full py-3 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 active:scale-[0.98] transition-all disabled:opacity-50"
+                            >
+                                {mutationLoading ? 'Processing...' : 'Block Selected Date'}
+                            </button>
+                        </form>
                     </div>
 
                 </div>
@@ -531,9 +672,14 @@ export default function EditProfileDrawer({ isOpen, onClose, user: initialUser }
                         type="button"
                         onClick={handleSave}
                         disabled={loading}
-                        className="w-full py-3 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 shadow-sm active:scale-[0.98] transition-all disabled:opacity-70"
+                        className="w-full py-3 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 active:scale-[0.98] transition-all shadow-lg shadow-blue-200 disabled:opacity-50 flex items-center justify-center gap-2"
                     >
-                        {loading ? 'Saving...' : 'Save Profile'}
+                        {loading ? (
+                            <>
+                                <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                                Saving...
+                            </>
+                        ) : 'Save Profile Changes'}
                     </button>
                     {status.message && (
                         <div className={`sm:col-span-2 text-center text-xs font-bold py-2 rounded-lg ${status.type === 'success' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>

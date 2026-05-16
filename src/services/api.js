@@ -225,16 +225,64 @@ const apiService = {
         return response;
     },
 
-    addDoctorSchedule: async (scheduleData) => {
+    saveDefaultSchedule: async () => {
         const token = typeof window !== 'undefined' ? (localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')) : null;
-        const response = await fetch(`${BASE_URL}/doctor/schedule`, {
+        const response = await fetch(`${BASE_URL}/doctor/schedule/default`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/json',
+            },
+        });
+        return response;
+    },
+
+    addBlockedDate: async (blockedData) => {
+        const token = typeof window !== 'undefined' ? (localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')) : null;
+        const response = await fetch(`${BASE_URL}/doctor/blocked-dates`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`,
                 'Accept': 'application/json',
             },
-            body: JSON.stringify(scheduleData),
+            body: JSON.stringify(blockedData),
+        });
+        return response;
+    },
+
+    deleteBlockedDate: async (id) => {
+        const token = typeof window !== 'undefined' ? (localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')) : null;
+        const response = await fetch(`${BASE_URL}/doctor/blocked-dates/${id}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/json',
+            },
+        });
+        return response;
+    },
+
+    toggleScheduleSlot: async (id) => {
+        const token = typeof window !== 'undefined' ? (localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')) : null;
+        const response = await fetch(`${BASE_URL}/doctor/schedule/${id}/toggle`, {
+            method: 'PATCH',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/json',
+            },
+        });
+        return response;
+    },
+
+    deleteScheduleSlot: async (id) => {
+        const token = typeof window !== 'undefined' ? (localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')) : null;
+        const response = await fetch(`${BASE_URL}/doctor/schedule/${id}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/json',
+            },
         });
         return response;
     },
