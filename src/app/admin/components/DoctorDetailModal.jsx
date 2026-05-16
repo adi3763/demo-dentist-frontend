@@ -1,4 +1,5 @@
 'use client';
+import { getStorageUrl } from '@/services/api';
 import { X, Phone, Mail, MapPin, Stethoscope, GraduationCap, Clock, DollarSign, Globe, CalendarDays } from 'lucide-react';
 
 const DAY_ORDER = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -9,8 +10,8 @@ export default function DoctorDetailModal({ doctor, isOpen, onClose, isAdmin, on
     const p = doctor.profile || {};
     const isActive = doctor.is_active ?? (doctor.status === 'active' || doctor.status === 'Active');
 
-    const avatarUrl = p.photo ||
-        `https://ui-avatars.com/api/?name=${encodeURIComponent(doctor.name || 'D')}&background=0D8ABC&color=fff&size=128`;
+    const fallbackUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(doctor.name || 'D')}&background=0D8ABC&color=fff&size=128`;
+    const avatarUrl = getStorageUrl(p.photo || doctor.photo) || fallbackUrl;
 
     const availableDays = Array.isArray(p.available_days) ? p.available_days : [];
     const languages = Array.isArray(p.languages) ? p.languages : [];

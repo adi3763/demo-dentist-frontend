@@ -1,3 +1,5 @@
+import { getStorageUrl } from '@/services/api';
+
 export default function DoctorRow({ doctor, onClick, isAdmin, onToggle, toggling }) {
     const p = doctor.profile || {};
     const isActive = doctor.is_active ?? (doctor.status === 'active' || doctor.status === 'Active');
@@ -5,9 +7,8 @@ export default function DoctorRow({ doctor, onClick, isAdmin, onToggle, toggling
     const phoneNumber = doctor.phone || p.phone || doctor.phone_number || p.phone_number || '—';
 
     const rawPhoto = p.photo || doctor.photo || doctor.image;
-    const avatarUrl = rawPhoto 
-        ? (rawPhoto.startsWith('http') ? rawPhoto : `https://demo-dentist-main-adaeep.free.laravel.cloud/storage/${rawPhoto}`)
-        : `https://ui-avatars.com/api/?name=${encodeURIComponent(doctor.name || 'D')}&background=0D8ABC&color=fff`;
+    const fallbackUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(doctor.name || 'D')}&background=0D8ABC&color=fff`;
+    const avatarUrl = getStorageUrl(rawPhoto) || p.avatar || fallbackUrl;
 
     return (
         <tr className="hover:bg-slate-50/50 transition-colors group cursor-pointer" onClick={onClick}>

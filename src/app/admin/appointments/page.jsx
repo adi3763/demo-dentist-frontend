@@ -105,11 +105,20 @@ export default function AppointmentsManagementPage() {
     const handleUpdateStatus = async (id, status) => {
         setMutationLoading(id);
         try {
-            const res = isAdmin 
-                ? await apiService.updateAdminAppointmentStatus(id, status)
-                : (status === 'confirmed' ? await apiService.approveAppointment(id) : await apiService.completeAppointment(id));
+            let res;
+            if (isAdmin) {
+                res = await apiService.updateAdminAppointmentStatus(id, status);
+            } else {
+                if (status === 'confirmed') res = await apiService.approveAppointment(id);
+                else if (status === 'completed') res = await apiService.completeAppointment(id);
+                else if (status === 'rejected') {
+                    const reason = prompt('Reason for rejection?');
+                    if (reason === null) return; // User cancelled
+                    res = await apiService.rejectAppointment(id, reason || 'Schedule conflict');
+                }
+            }
             
-            if (res.ok) {
+            if (res && res.ok) {
                 fetchAppointments();
                 if (detailModal.isOpen) setDetailModal({ ...detailModal, isOpen: false });
             }
@@ -303,17 +312,25 @@ export default function AppointmentsManagementPage() {
                                                 ) : (
                                                     <div className="flex gap-2">
                                                         {appt.status === 'pending' && (
-                                                            <button 
-                                                                onClick={() => handleUpdateStatus(appt.id, 'confirmed')}
-                                                                className="px-3 py-1.5 bg-emerald-500 text-white rounded-lg text-[10px] font-black uppercase"
-                                                            >
-                                                                Approve
-                                                            </button>
+                                                            <>
+                                                                <button 
+                                                                    onClick={() => handleUpdateStatus(appt.id, 'confirmed')}
+                                                                    className="px-3 py-1.5 bg-emerald-500 text-white rounded-lg text-[10px] font-black uppercase hover:bg-emerald-600 transition-colors"
+                                                                >
+                                                                    Approve
+                                                                </button>
+                                                                <button 
+                                                                    onClick={() => handleUpdateStatus(appt.id, 'rejected')}
+                                                                    className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-[10px] font-black uppercase hover:bg-red-600 transition-colors"
+                                                                >
+                                                                    Reject
+                                                                </button>
+                                                            </>
                                                         )}
                                                         {appt.status === 'confirmed' && (
                                                             <button 
                                                                 onClick={() => handleUpdateStatus(appt.id, 'completed')}
-                                                                className="px-3 py-1.5 bg-slate-900 text-white rounded-lg text-[10px] font-black uppercase"
+                                                                className="px-3 py-1.5 bg-slate-900 text-white rounded-lg text-[10px] font-black uppercase hover:bg-slate-800 transition-colors"
                                                             >
                                                                 Complete
                                                             </button>

@@ -1,4 +1,12 @@
 const BASE_URL = 'https://demo-dentist-main-adaeep.free.laravel.cloud/api';
+const API_HOST = 'https://demo-dentist-main-adaeep.free.laravel.cloud';
+
+export const getStorageUrl = (path) => {
+    if (!path) return null;
+    if (path.startsWith('http')) return path;
+    if (path.startsWith('/storage')) return `${API_HOST}${path}`;
+    return `${API_HOST}/storage/${path}`;
+};
 
 const getAuthToken = () => {
     if (typeof window === 'undefined') return null;

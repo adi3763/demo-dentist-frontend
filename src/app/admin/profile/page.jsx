@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { Camera, User, Mail, Phone, Stethoscope, Briefcase, DollarSign, Award, Save, CheckCircle2, AlertCircle } from 'lucide-react';
-import apiService from '@/services/api';
+import apiService, { getStorageUrl } from '@/services/api';
 import { useAuth } from '@/context/AuthContext';
 
 export default function DoctorProfilePage() {
@@ -10,6 +10,7 @@ export default function DoctorProfilePage() {
     const [saving, setSaving] = useState(false);
     const [status, setStatus] = useState({ type: '', message: '' });
     const [photoLoading, setPhotoLoading] = useState(false);
+    const [imgError, setImgError] = useState(false);
     
     const [profileData, setProfileData] = useState({
         name: '',
@@ -26,6 +27,10 @@ export default function DoctorProfilePage() {
     useEffect(() => {
         fetchProfile();
     }, []);
+
+    useEffect(() => {
+        setImgError(false);
+    }, [profileData.photo]);
 
     const fetchProfile = async () => {
         setLoading(true);
@@ -91,8 +96,9 @@ export default function DoctorProfilePage() {
             const response = await apiService.uploadDoctorPhoto(formData);
             const data = await response.json();
             if (response.ok) {
-                setProfileData(prev => ({ ...prev, photo: data.photo_url }));
-                setUser(prev => ({ ...prev, profile: { ...(prev?.profile || {}), photo: data.photo_url } }));
+                const newPhoto = data.profile?.photo || data.photo;
+                setProfileData(prev => ({ ...prev, photo: newPhoto }));
+                setUser(prev => ({ ...prev, profile: { ...(prev?.profile || {}), photo: newPhoto } }));
                 setStatus({ type: 'success', message: 'Photo updated!' });
             }
         } catch (error) { console.error(error); }
@@ -100,6 +106,8 @@ export default function DoctorProfilePage() {
     };
 
     if (loading) return <div className="p-10 animate-pulse space-y-8"><div className="h-10 w-48 bg-slate-200 rounded-xl" /><div className="h-96 bg-white rounded-[40px]" /></div>;
+
+    const photoUrl = getStorageUrl(profileData.photo);
 
     return (
         <div className="max-w-4xl mx-auto space-y-8 pb-20">
@@ -109,17 +117,17 @@ export default function DoctorProfilePage() {
             </div>
 
             <div className="bg-white rounded-[40px] border border-slate-100 shadow-sm overflow-hidden">
-                {/* Profile Header Background */}
                 <div className="h-32 bg-gradient-to-r from-blue-600 to-indigo-600 relative">
                     <div className="absolute -bottom-12 left-10">
                         <div className="relative group">
                             <div className="w-32 h-32 rounded-[32px] bg-white p-1 shadow-xl">
                                 <div className="w-full h-full rounded-[28px] bg-slate-100 overflow-hidden relative">
-                                    {profileData.photo ? (
+                                    {(photoUrl && !imgError) ? (
                                         <img 
-                                            src={profileData.photo.startsWith('http') ? profileData.photo : `https://demo-dentist-main-adaeep.free.laravel.cloud/storage/${profileData.photo}`} 
+                                            src={photoUrl} 
                                             className="w-full h-full object-cover"
                                             alt="Profile"
+                                            onError={() => setImgError(true)}
                                         />
                                     ) : <User className="w-full h-full p-6 text-slate-300" />}
                                     {photoLoading && <div className="absolute inset-0 bg-white/40 flex items-center justify-center"><div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" /></div>}

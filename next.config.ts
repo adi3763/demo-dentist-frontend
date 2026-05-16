@@ -10,6 +10,12 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'cdn.pixabay.com', // Pixabay videos cdn.pixabay.com se aate hain
       },
+      {
+        protocol: 'https',
+        hostname: 'demo-dentist-main-adaeep.free.laravel.cloud',
+        pathname: '/storage/**',
+      },
+
     ],
   },
 };
