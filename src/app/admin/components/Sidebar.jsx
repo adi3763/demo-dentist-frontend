@@ -18,9 +18,10 @@ export default function Sidebar({ logout, isOpen, onClose }) {
     ];
 
     const doctorItems = [
+        { icon: LayoutDashboard, label: 'Dashboard', href: '/admin' },
         { icon: Users, label: 'Profile', href: '/admin/profile' },
         { icon: Calendar, label: 'Schedule', href: '/admin/schedule' },
-        { icon: LayoutDashboard, label: 'Appointments', href: '/admin/appointments' },
+        { icon: Calendar, label: 'Appointments', href: '/admin/appointments' },
         { icon: Users, label: 'Doctors', href: '/admin/doctors' },
         { icon: Stethoscope, label: 'Services', href: '/admin/services' },
     ];

@@ -179,6 +179,10 @@ const apiService = {
 
     // --- DOCTOR APIs ---
     
+    getDoctorDashboard: async () => {
+        return authenticatedFetch('/doctor/dashboard');
+    },
+
     getDoctorProfile: () => authenticatedFetch('/doctor/profile'),
 
     updateDoctorProfile: (profileData) => authenticatedFetch('/doctor/profile', {
