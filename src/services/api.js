@@ -286,6 +286,91 @@ const apiService = {
         });
         return response;
     },
+
+    updateScheduleSlot: async (id, scheduleData) => {
+        const token = typeof window !== 'undefined' ? (localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')) : null;
+        const response = await fetch(`${BASE_URL}/doctor/schedule/${id}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/json',
+            },
+            body: JSON.stringify({
+                ...scheduleData,
+                '_method': 'PATCH'
+            }),
+        });
+        return response;
+    },
+
+    getDoctorAppointments: async (filters = {}) => {
+        const token = typeof window !== 'undefined' ? (localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')) : null;
+        const queryParams = new URLSearchParams();
+        if (filters.date) queryParams.append('date', filters.date);
+        if (filters.status) queryParams.append('status', filters.status);
+        
+        const url = `${BASE_URL}/doctor/appointments${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
+        const response = await fetch(url, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/json',
+            },
+        });
+        return response;
+    },
+
+    approveAppointment: async (id) => {
+        const token = typeof window !== 'undefined' ? (localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')) : null;
+        const response = await fetch(`${BASE_URL}/doctor/appointments/${id}/approve`, {
+            method: 'PATCH',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/json',
+            },
+        });
+        return response;
+    },
+
+    rejectAppointment: async (id, reason) => {
+        const token = typeof window !== 'undefined' ? (localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')) : null;
+        const response = await fetch(`${BASE_URL}/doctor/appointments/${id}/reject`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/json',
+            },
+            body: JSON.stringify({ reason }),
+        });
+        return response;
+    },
+
+    rescheduleAppointment: async (id, rescheduleData) => {
+        const token = typeof window !== 'undefined' ? (localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')) : null;
+        const response = await fetch(`${BASE_URL}/doctor/appointments/${id}/reschedule`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/json',
+            },
+            body: JSON.stringify(rescheduleData),
+        });
+        return response;
+    },
+
+    completeAppointment: async (id) => {
+        const token = typeof window !== 'undefined' ? (localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')) : null;
+        const response = await fetch(`${BASE_URL}/doctor/appointments/${id}/complete`, {
+            method: 'PATCH',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/json',
+            },
+        });
+        return response;
+    },
 };
 
 export default apiService;

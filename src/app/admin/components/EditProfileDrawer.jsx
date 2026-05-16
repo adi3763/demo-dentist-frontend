@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { X, Camera, Clock, ChevronDown, Plus, Trash2, Calendar, Lock, Unlock, AlertCircle } from 'lucide-react';
+import { X, Camera, Clock, ChevronDown, Plus, Trash2, Calendar, Lock, Unlock, AlertCircle, Edit2 } from 'lucide-react';
 import apiService from '@/services/api';
 import { useAuth } from '@/context/AuthContext';
 
@@ -35,6 +35,14 @@ export default function EditProfileDrawer({ isOpen, onClose, user: initialUser }
         reason: ''
     });
     const [mutationLoading, setMutationLoading] = useState(false);
+    
+    // Schedule Slot Editing State
+    const [editingSlotId, setEditingSlotId] = useState(null);
+    const [editSlotForm, setEditSlotForm] = useState({
+        day_of_week: 0,
+        start_time: '',
+        end_time: ''
+    });
 
     useEffect(() => {
         if (isOpen) {
@@ -146,6 +154,36 @@ export default function EditProfileDrawer({ isOpen, onClose, user: initialUser }
             if (res.ok) fetchSchedule();
         } catch (error) {
             console.error('Error deleting blocked date:', error);
+        }
+    };
+
+    const handleStartEdit = (slot) => {
+        setEditingSlotId(slot.id);
+        setEditSlotForm({
+            day_of_week: slot.day_of_week,
+            start_time: slot.start_time.substring(0, 5),
+            end_time: slot.end_time.substring(0, 5)
+        });
+    };
+
+    const handleUpdateSlot = async (e) => {
+        e.preventDefault();
+        setMutationLoading(true);
+        setStatus({ type: '', message: '' });
+        try {
+            const response = await apiService.updateScheduleSlot(editingSlotId, editSlotForm);
+            const data = await response.json();
+            if (response.ok) {
+                setEditingSlotId(null);
+                fetchSchedule();
+                setStatus({ type: 'success', message: 'Slot updated successfully!' });
+            } else {
+                setStatus({ type: 'error', message: data.message || 'Failed to update slot' });
+            }
+        } catch (error) {
+            setStatus({ type: 'error', message: 'Error updating slot' });
+        } finally {
+            setMutationLoading(false);
         }
     };
 
@@ -550,28 +588,94 @@ export default function EditProfileDrawer({ isOpen, onClose, user: initialUser }
                                             <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">{getDayName(dayNum)}</h4>
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                                 {daySlots.map(slot => (
-                                                    <div key={slot.id} className="p-4 bg-white border border-slate-100 rounded-[24px] shadow-sm flex items-center justify-between group hover:border-blue-100 transition-all">
-                                                        <div className="flex items-center gap-3">
-                                                            <div className={`w-2 h-2 rounded-full ${slot.is_active ? 'bg-emerald-500' : 'bg-slate-300'}`} />
-                                                            <span className="text-xs font-bold text-slate-700">{formatTime(slot.start_time)} — {formatTime(slot.end_time)}</span>
-                                                        </div>
-                                                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => handleToggleSlot(slot.id)}
-                                                                title={slot.is_active ? 'Disable slot' : 'Enable slot'}
-                                                                className={`p-2 rounded-lg transition-colors ${slot.is_active ? 'text-slate-400 hover:bg-slate-50' : 'text-emerald-500 hover:bg-emerald-50'}`}
-                                                            >
-                                                                {slot.is_active ? <Lock size={14} /> : <Unlock size={14} />}
-                                                            </button>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => handleDeleteSlot(slot.id)}
-                                                                className="p-2 text-red-400 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors"
-                                                            >
-                                                                <Trash2 size={14} />
-                                                            </button>
-                                                        </div>
+                                                    <div key={slot.id} className="p-4 bg-white border border-slate-100 rounded-[24px] shadow-sm group hover:border-blue-100 transition-all">
+                                                        {editingSlotId === slot.id ? (
+                                                            /* INLINE EDIT FORM */
+                                                            <form onSubmit={handleUpdateSlot} className="space-y-3">
+                                                                <div className="grid grid-cols-2 gap-2">
+                                                                    <div className="space-y-1 col-span-2">
+                                                                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Day of Week</label>
+                                                                        <select
+                                                                            value={editSlotForm.day_of_week}
+                                                                            onChange={e => setEditSlotForm(prev => ({ ...prev, day_of_week: parseInt(e.target.value) }))}
+                                                                            className="w-full bg-slate-50 border border-slate-200 rounded-lg py-1.5 px-2 text-xs font-bold text-slate-700 outline-none focus:border-blue-500"
+                                                                        >
+                                                                            {[0, 1, 2, 3, 4, 5, 6].map(d => (
+                                                                                <option key={d} value={d}>{getDayName(d)}</option>
+                                                                            ))}
+                                                                        </select>
+                                                                    </div>
+                                                                    <div className="space-y-1">
+                                                                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Start</label>
+                                                                        <input
+                                                                            type="time"
+                                                                            value={editSlotForm.start_time}
+                                                                            onChange={e => setEditSlotForm(prev => ({ ...prev, start_time: e.target.value }))}
+                                                                            className="w-full bg-slate-50 border border-slate-200 rounded-lg py-1.5 px-2 text-xs font-bold text-slate-700 outline-none focus:border-blue-500"
+                                                                        />
+                                                                    </div>
+                                                                    <div className="space-y-1">
+                                                                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">End</label>
+                                                                        <input
+                                                                            type="time"
+                                                                            value={editSlotForm.end_time}
+                                                                            onChange={e => setEditSlotForm(prev => ({ ...prev, end_time: e.target.value }))}
+                                                                            className="w-full bg-slate-50 border border-slate-200 rounded-lg py-1.5 px-2 text-xs font-bold text-slate-700 outline-none focus:border-blue-500"
+                                                                        />
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex items-center gap-2 pt-1">
+                                                                    <button
+                                                                        type="submit"
+                                                                        disabled={mutationLoading}
+                                                                        className="flex-1 py-1.5 bg-blue-600 text-white rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-blue-700 disabled:opacity-50 transition-all"
+                                                                    >
+                                                                        {mutationLoading ? '...' : 'Save'}
+                                                                    </button>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => setEditingSlotId(null)}
+                                                                        className="flex-1 py-1.5 bg-slate-100 text-slate-600 rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-slate-200 transition-all"
+                                                                    >
+                                                                        Cancel
+                                                                    </button>
+                                                                </div>
+                                                            </form>
+                                                        ) : (
+                                                            /* SLOT VIEW MODE */
+                                                            <div className="flex items-center justify-between">
+                                                                <div className="flex items-center gap-3">
+                                                                    <div className={`w-2 h-2 rounded-full ${slot.is_active ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+                                                                    <span className="text-xs font-bold text-slate-700">{formatTime(slot.start_time)} — {formatTime(slot.end_time)}</span>
+                                                                </div>
+                                                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => handleStartEdit(slot)}
+                                                                        title="Edit slot"
+                                                                        className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
+                                                                    >
+                                                                        <Edit2 size={14} />
+                                                                    </button>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => handleToggleSlot(slot.id)}
+                                                                        title={slot.is_active ? 'Disable slot' : 'Enable slot'}
+                                                                        className={`p-2 rounded-lg transition-colors ${slot.is_active ? 'text-slate-400 hover:bg-slate-50' : 'text-emerald-500 hover:bg-emerald-50'}`}
+                                                                    >
+                                                                        {slot.is_active ? <Lock size={14} /> : <Unlock size={14} />}
+                                                                    </button>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => handleDeleteSlot(slot.id)}
+                                                                        title="Delete slot"
+                                                                        className="p-2 text-red-400 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors"
+                                                                    >
+                                                                        <Trash2 size={14} />
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 ))}
                                             </div>
