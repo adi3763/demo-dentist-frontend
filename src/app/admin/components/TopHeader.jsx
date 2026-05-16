@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Search, Bell, History, Menu } from 'lucide-react';
 import ProfileDropdown from './ProfileDropdown';
 
-export function TopNav({ user, onMenuClick, logout }) {
+export function TopNav({ user, onMenuClick, onProfileClick, onSettingsClick, logout }) {
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const dropdownRef = useRef(null);
 
@@ -48,18 +48,32 @@ export function TopNav({ user, onMenuClick, logout }) {
                     >
                         <div className="text-right hidden md:block">
                             <p className="text-sm font-bold text-slate-800">{user?.name || 'Loading...'}</p>
-                            <p className="text-[10px] text-slate-500 font-medium uppercase tracking-tight">{user?.specialization || 'Medical Staff'}</p>
+                            <p className="text-[10px] text-slate-500 font-medium uppercase tracking-tight">
+                                {user?.specialization || user?.profile?.specialization || 'Medical Staff'}
+                            </p>
                         </div>
                         <img
-                            src={user?.profile?.avatar || `https://ui-avatars.com/api/?name=${user?.name || 'User'}&background=0D8ABC&color=fff`}
+                            src={
+                                user?.profile?.photo 
+                                    ? (user.profile.photo.startsWith('http') ? user.profile.photo : `https://demo-dentist-main-adaeep.free.laravel.cloud/storage/${user.profile.photo}`)
+                                    : (user?.profile?.avatar || `https://ui-avatars.com/api/?name=${user?.name || 'User'}&background=0D8ABC&color=fff`)
+                            }
                             alt="Profile"
-                            className="w-10 h-10 rounded-full border-2 border-white shadow-sm ring-2 ring-slate-50"
+                            className="w-10 h-10 rounded-full border-2 border-white shadow-sm ring-2 ring-slate-50 object-cover"
                         />
                     </button>
 
                     <ProfileDropdown 
                         isOpen={dropdownOpen} 
                         user={user} 
+                        onProfileClick={() => {
+                            setDropdownOpen(false);
+                            onProfileClick();
+                        }}
+                        onSettingsClick={() => {
+                            setDropdownOpen(false);
+                            onSettingsClick();
+                        }}
                         logout={logout} 
                     />
                 </div>

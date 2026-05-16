@@ -77,19 +77,23 @@ export default function DoctorManagement() {
 
     useEffect(() => { fetchDoctors(); }, [fetchDoctors]);
 
-    // Open modal immediately with list data, then enrich with full profile fetch (admins only)
+    // Open modal immediately with list data, then enrich with full profile fetch
     const handleDoctorClick = async (doc) => {
         setSelectedDoctor(doc); // shows modal instantly with data from the list
         
-        // Backend restricts doctors from viewing other individual doctor endpoints (returns 404).
-        // Since the /doctors list already returns the full profile, we just skip the fetch.
-        if (!isAdmin) return;
-
         try {
             const res = await apiService.getDoctorById(doc.id, isAdmin);
             if (res.ok) {
                 const data = await res.json();
-                const full = data.user || data.data || data;
+                
+                // Merge user and profile if they are siblings in the response
+                let full = data;
+                if (data.user && data.profile) {
+                    full = { ...data.user, profile: data.profile };
+                } else if (data.user) {
+                    full = data.user || data.data || data;
+                }
+
                 if (full && (full.id || full.name)) {
                     setSelectedDoctor(normalizeDoctor(full));
                 }

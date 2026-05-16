@@ -1,12 +1,69 @@
 "use client"
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import styles from './header.module.css';
+import apiService from '@/services/api';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isFormOpen, setIsFormOpen] = useState(false); // Form ke liye state
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    subject: '',
+    message: ''
+  });
+  const [status, setStatus] = useState({ loading: false, success: false, error: null });
+  const [services, setServices] = useState([]);
   const phoneNumber = "+917024934163";
+
+  useEffect(() => {
+    if (isFormOpen) {
+      const fetchServices = async () => {
+        try {
+          const response = await apiService.getPublicServices();
+          if (response.ok) {
+            const data = await response.json();
+            // Handling both { services: [] } and [] formats
+            setServices(Array.isArray(data) ? data : (data.services || []));
+          }
+        } catch (error) {
+          console.error('Failed to fetch services:', error);
+        }
+      };
+      fetchServices();
+    }
+  }, [isFormOpen]);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setStatus({ loading: true, success: false, error: null });
+
+    try {
+      const response = await apiService.submitContactForm(formData);
+      const data = await response.json();
+
+      if (response.ok) {
+        setStatus({ loading: false, success: true, error: null });
+        setFormData({ name: '', email: '', phone: '', subject: '', message: '' });
+        // Close modal after 2 seconds on success
+        setTimeout(() => {
+          setIsFormOpen(false);
+          setStatus({ loading: false, success: false, error: null });
+        }, 2000);
+      } else {
+        setStatus({ loading: false, success: false, error: data.message || 'Something went wrong' });
+      }
+    } catch (err) {
+      setStatus({ loading: false, success: false, error: 'Failed to connect to server' });
+    }
+  };
 
   return (
     <div className={styles.headerContainer}>
@@ -48,34 +105,90 @@ const Header = () => {
             <button className={styles.closeBtn} onClick={() => setIsFormOpen(false)}>&times;</button>
             
             <h3>Enquire Now</h3>
-            <form className={styles.contactForm}>
-              <div className={styles.formGroup}>
-                <label>Name</label>
-                <input type="text" placeholder="Enter your name" required />
+            {status.success ? (
+              <div className={styles.successMessage}>
+                <p>Thank you for contacting us. We will get back to you soon.</p>
               </div>
+            ) : (
+              <form className={styles.contactForm} onSubmit={handleSubmit}>
+                <div className={styles.formGroup}>
+                  <label>Name</label>
+                  <input 
+                    type="text" 
+                    name="name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    placeholder="Enter your name" 
+                    required 
+                  />
+                </div>
 
-              <div className={styles.formGroup}>
-                <label>Phone Number</label>
-                <input type="tel" placeholder="Enter phone number" required />
-              </div>
+                <div className={styles.formGroup}>
+                  <label>Email</label>
+                  <input 
+                    type="email" 
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    placeholder="Enter your email" 
+                    required 
+                  />
+                </div>
 
-              <div className={styles.formGroup}>
-                <label>Interested In</label>
-                <select required>
-                  <option value="">Select an option</option>
-                  <option value="checkup">Dental Checkup</option>
-                  <option value="cosmetic">Cosmetic Dentistry</option>
-                  <option value="emergency">Emergency Care</option>
-                </select>
-              </div>
+                <div className={styles.formGroup}>
+                  <label>Phone Number</label>
+                  <input 
+                    type="tel" 
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleChange}
+                    placeholder="Enter phone number" 
+                    required 
+                  />
+                </div>
 
-              <div className={styles.formGroup}>
-                <label>Your Message</label>
-                <textarea rows="4" placeholder="How can we help you?"></textarea>
-              </div>
+                <div className={styles.formGroup}>
+                  <label>Subject</label>
+                  <select 
+                    name="subject"
+                    value={formData.subject}
+                    onChange={handleChange}
+                    required
+                  >
+                    <option value="">Select a subject</option>
+                    <option value="Inquiry about services">Inquiry about services</option>
+                    {services.map((service) => (
+                      <option key={service.id} value={service.title || service.name}>
+                        {service.title || service.name}
+                      </option>
+                    ))}
+                    <option value="Emergency Care">Emergency Care</option>
+                  </select>
+                </div>
 
-              <button type="submit" className={styles.submitBtn}>Send Message</button>
-            </form>
+                <div className={styles.formGroup}>
+                  <label>Your Message</label>
+                  <textarea 
+                    name="message"
+                    value={formData.message}
+                    onChange={handleChange}
+                    rows="4" 
+                    placeholder="How can we help you?"
+                    required
+                  ></textarea>
+                </div>
+
+                {status.error && <p className={styles.errorMessage}>{status.error}</p>}
+
+                <button 
+                  type="submit" 
+                  className={styles.submitBtn}
+                  disabled={status.loading}
+                >
+                  {status.loading ? 'Sending...' : 'Send Message'}
+                </button>
+              </form>
+            )}
           </div>
         </div>
       )}

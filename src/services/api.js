@@ -80,7 +80,7 @@ const apiService = {
 
     getDoctorById: async (id, isAdmin = true) => {
         const token = typeof window !== 'undefined' ? (localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')) : null;
-        const url = isAdmin ? `${BASE_URL}/admin/users/${id}` : `${BASE_URL}/doctors/${id}`;
+        const url = isAdmin ? `${BASE_URL}/admin/users/${id}` : `${BASE_URL}/doctor/doctors/${id}`;
         const response = await fetch(url, {
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -144,6 +144,97 @@ const apiService = {
                 'Accept': 'application/json',
             },
             body: JSON.stringify(data),
+        });
+        return response;
+    },
+
+    submitContactForm: async (data) => {
+        const response = await fetch(`${BASE_URL}/contact`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+            },
+            body: JSON.stringify(data),
+        });
+        return response;
+    },
+
+    // Doctor Profile APIs
+    getDoctorProfile: async () => {
+        const token = typeof window !== 'undefined' ? (localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')) : null;
+        const response = await fetch(`${BASE_URL}/doctor/profile`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/json',
+            },
+        });
+        return response;
+    },
+
+    updateDoctorProfile: async (profileData) => {
+        const token = typeof window !== 'undefined' ? (localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')) : null;
+        const response = await fetch(`${BASE_URL}/doctor/profile`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify(profileData),
+        });
+        return response;
+    },
+
+    uploadDoctorPhoto: async (formData) => {
+        const token = typeof window !== 'undefined' ? (localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')) : null;
+        const response = await fetch(`${BASE_URL}/doctor/profile/photo`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/json',
+            },
+            body: formData,
+        });
+        return response;
+    },
+
+    changePassword: async (passwordData) => {
+        const token = typeof window !== 'undefined' ? (localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')) : null;
+        const response = await fetch(`${BASE_URL}/doctor/profile/change-password`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/json',
+            },
+            body: JSON.stringify(passwordData),
+        });
+        return response;
+    },
+
+    getDoctorSchedule: async () => {
+        const token = typeof window !== 'undefined' ? (localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')) : null;
+        const response = await fetch(`${BASE_URL}/doctor/schedule`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/json',
+            },
+        });
+        return response;
+    },
+
+    addDoctorSchedule: async (scheduleData) => {
+        const token = typeof window !== 'undefined' ? (localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')) : null;
+        const response = await fetch(`${BASE_URL}/doctor/schedule`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/json',
+            },
+            body: JSON.stringify(scheduleData),
         });
         return response;
     },

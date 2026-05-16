@@ -218,3 +218,23 @@
 .bar1 { transform: rotate(-45deg) translate(-5px, 6px); }
 .bar2 { opacity: 0; }
 .bar3 { transform: rotate(45deg) translate(-5px, -7px); }
+
+.successMessage {
+  padding: 20px;
+  background-color: #d4edda;
+  color: #155724;
+  border-radius: 8px;
+  text-align: center;
+  font-weight: 600;
+  border: 1px solid #c3e6cb;
+}
+
+.errorMessage {
+  color: #721c24;
+  background-color: #f8d7da;
+  border: 1px solid #f5c6cb;
+  padding: 10px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  text-align: center;
+}

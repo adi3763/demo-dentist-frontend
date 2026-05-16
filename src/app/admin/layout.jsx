@@ -4,6 +4,8 @@ import { useAuth } from '@/context/AuthContext';
 import { useRouter, usePathname } from 'next/navigation';
 import Sidebar from './components/Sidebar';
 import { TopNav } from './components/TopHeader';
+import EditProfileDrawer from './components/EditProfileDrawer';
+import AccountSettingsModal from './components/AccountSettingsModal';
 import { LayoutDashboard, Users, CalendarDays, Activity, LogOut, Stethoscope } from 'lucide-react';
 
 function NavItem({ icon: Icon, label, active = false, onClick }) {
@@ -23,6 +25,8 @@ export default function AdminLayout({ children }) {
   const router = useRouter();
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const publicRoutes = ['/admin/login', '/admin/forgot-password'];
   const isPublicRoute = publicRoutes.includes(pathname);
@@ -71,7 +75,13 @@ export default function AdminLayout({ children }) {
 
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <TopNav user={user} onMenuClick={() => setSidebarOpen(true)} logout={logout} />
+        <TopNav 
+          user={user} 
+          onMenuClick={() => setSidebarOpen(true)} 
+          onProfileClick={() => setIsProfileOpen(true)}
+          onSettingsClick={() => setIsSettingsOpen(true)}
+          logout={logout} 
+        />
 
         <div className="flex-1 overflow-y-auto p-4 lg:p-8 pb-24 lg:pb-8">
           <div className="max-w-[1600px] mx-auto">
@@ -89,6 +99,19 @@ export default function AdminLayout({ children }) {
           <NavItem icon={LogOut} label="Logout" onClick={logout} />
         </nav>
       </main>
+
+      {/* Profile Edit Drawer */}
+      <EditProfileDrawer 
+        isOpen={isProfileOpen} 
+        onClose={() => setIsProfileOpen(false)} 
+        user={user}
+      />
+
+      {/* Account Settings Modal */}
+      <AccountSettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+      />
     </div>
   );
 }
