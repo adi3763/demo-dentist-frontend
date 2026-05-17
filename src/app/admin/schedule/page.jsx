@@ -169,7 +169,7 @@ export default function DoctorSchedulePage() {
                                                                     <div className={`w-2.5 h-2.5 rounded-full ${slot.is_active ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]' : 'bg-slate-300'}`} />
                                                                     <span className="text-sm font-bold text-slate-700">{formatTime(slot.start_time)} — {formatTime(slot.end_time)}</span>
                                                                 </div>
-                                                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                                                                     <button onClick={() => { setEditingSlotId(slot.id); setEditSlotForm({ day_of_week: slot.day_of_week, start_time: slot.start_time.substring(0, 5), end_time: slot.end_time.substring(0, 5) }); }} className="p-2 text-blue-500 hover:bg-blue-50 rounded-xl transition-colors"><Edit2 size={14} /></button>
                                                                     <button onClick={() => handleToggleSlot(slot.id)} className={`p-2 rounded-xl transition-colors ${slot.is_active ? 'text-slate-400' : 'text-emerald-500 hover:bg-emerald-50'}`}>{slot.is_active ? <Lock size={14} /> : <Unlock size={14} />}</button>
                                                                     <button onClick={() => handleDeleteSlot(slot.id)} className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"><Trash2 size={14} /></button>
@@ -235,7 +235,7 @@ export default function DoctorSchedulePage() {
                                             <p className="text-sm font-black text-slate-700">{new Date(bd.blocked_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
                                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{bd.reason || 'No reason'}</p>
                                         </div>
-                                        <button onClick={() => handleDeleteBlockedDate(bd.id)} className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100">
+                                        <button onClick={() => handleDeleteBlockedDate(bd.id)} className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
                                             <Trash2 size={16} />
                                         </button>
                                     </div>
