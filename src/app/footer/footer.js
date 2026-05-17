@@ -1,8 +1,12 @@
+"use client";
 import React from 'react';
 import styles from './footer.module.css';
 import { FaFacebookF, FaInstagram, FaYoutube, FaMapMarkerAlt, FaPhoneAlt, FaEnvelope, FaClock } from 'react-icons/fa';
+import { useContactModal } from '@/context/ContactModalContext';
 
 const Footer = () => {
+  const { openContactForm } = useContactModal();
+
   return (
     <footer className={styles.footer}>
       <div className={styles.container}>
@@ -12,7 +16,7 @@ const Footer = () => {
           <div className={styles.ctaContent}>
             <h2>Ready to experience a different kind of dentistry?</h2>
             <p>Join thousands of patients who have found their sanctuary for oral health.</p>
-            <button className={styles.ctaButton}>Book Your Consultation</button>
+            <button className={styles.ctaButton} onClick={openContactForm}>Book Your Consultation</button>
           </div>
         </div>
         {/* --- New CTA Section End --- */}

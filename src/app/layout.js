@@ -1,4 +1,5 @@
 import { AuthProvider } from '@/context/AuthContext';
+import { ContactModalProvider } from '@/context/ContactModalContext';
 import AppContent from '@/app/AppContent';
 import './globals.css';
 
@@ -12,7 +13,9 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <body suppressHydrationWarning>
         <AuthProvider>
-          <AppContent>{children}</AppContent>
+          <ContactModalProvider>
+            <AppContent>{children}</AppContent>
+          </ContactModalProvider>
         </AuthProvider>
       </body>
     </html>

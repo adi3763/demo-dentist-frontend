@@ -4,8 +4,10 @@ import Image from 'next/image';
 import styles from './hero.module.css';
 import { FaWhatsapp } from 'react-icons/fa'; 
 import apiService from '@/services/api';
+import { useContactModal } from '@/context/ContactModalContext';
 
 const Hero = () => {
+  const { openContactForm } = useContactModal();
   // WhatsApp Configuration
   const phoneNumber = "917024934163"; 
   const message = "Hello Dr. Priya Sharma, I would like to inquire about dental services.";
@@ -139,7 +141,7 @@ const Hero = () => {
             Experience world-class dental treatments in a sanctuary of luxury and precision. We blend advanced technology with personalized care to create lasting smiles.
           </p>
           <div className={styles.ctaButtons}>
-            <button className={styles.primaryCta}>Contact Us</button>
+            <button className={styles.primaryCta} onClick={openContactForm}>Contact Us</button>
             <button className={styles.secondaryCta}>
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={styles.playIcon}>
                 <circle cx="12" cy="12" r="10"></circle>

@@ -3,10 +3,11 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import styles from './header.module.css';
 import apiService from '@/services/api';
+import { useContactModal } from '@/context/ContactModalContext';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isFormOpen, setIsFormOpen] = useState(false);
+  const { isFormOpen, openContactForm, closeContactForm } = useContactModal();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -54,7 +55,7 @@ const Header = () => {
         setFormData({ name: '', email: '', phone: '', subject: '', message: '' });
         // Close modal after 2 seconds on success
         setTimeout(() => {
-          setIsFormOpen(false);
+          closeContactForm();
           setStatus({ loading: false, success: false, error: null });
         }, 2000);
       } else {
@@ -87,7 +88,7 @@ const Header = () => {
         </nav>
 
         {/* Contact Us Button - Modal trigger */}
-        <button className={styles.bookButton} onClick={() => setIsFormOpen(true)}>
+        <button className={styles.bookButton} onClick={openContactForm}>
           Contact us
         </button>
 
@@ -100,9 +101,9 @@ const Header = () => {
 
       {/* 3. Popup Contact Form Modal */}
       {isFormOpen && (
-        <div className={styles.modalOverlay} onClick={() => setIsFormOpen(false)}>
+        <div className={styles.modalOverlay} onClick={closeContactForm}>
           <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-            <button className={styles.closeBtn} onClick={() => setIsFormOpen(false)}>&times;</button>
+            <button className={styles.closeBtn} onClick={closeContactForm}>&times;</button>
             
             <h3>Enquire Now</h3>
             {status.success ? (
