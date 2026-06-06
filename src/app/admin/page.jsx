@@ -356,7 +356,7 @@ export default function AdminDashboard() {
                         <span>Doctor Portal</span>
                     </div>
                     <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">
-                        Hello, <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">Dr. {doctor.name?.split(' ')[0]}</span>!
+                        Hello, <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">Dr. {doctor.name ? doctor.name.replace(/^(dr\.?\s*)+/i, '').split(' ')[0] : ''}</span>!
                     </h1>
                     <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mt-1.5 flex items-center gap-2">
                         <span className="px-2 py-0.5 bg-slate-100 rounded text-slate-600 font-bold">{doctor.specialization || 'Dental Specialist'}</span>
