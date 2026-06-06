@@ -107,7 +107,15 @@ export default function AppointmentsManagementPage() {
         try {
             let res;
             if (isAdmin) {
-                res = await apiService.updateAdminAppointmentStatus(id, status);
+                let reason = undefined;
+                if (status === 'rejected') {
+                    reason = prompt('Reason for rejection?');
+                    if (reason === null) return; // User cancelled
+                } else if (status === 'rescheduled') {
+                    reason = prompt('Reason for rescheduling?');
+                    if (reason === null) return; // User cancelled
+                }
+                res = await apiService.updateAdminAppointmentStatus(id, status, reason);
             } else {
                 if (status === 'confirmed') res = await apiService.approveAppointment(id);
                 else if (status === 'completed') res = await apiService.completeAppointment(id);

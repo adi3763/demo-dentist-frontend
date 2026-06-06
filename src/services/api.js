@@ -152,9 +152,9 @@ const apiService = {
 
     getAdminAppointmentById: (id) => authenticatedFetch(`/admin/appointments/${id}`),
     
-    updateAdminAppointmentStatus: (id, status) => authenticatedFetch(`/admin/appointments/${id}`, {
+    updateAdminAppointmentStatus: (id, status, reason) => authenticatedFetch(`/admin/appointments/${id}`, {
         method: 'PATCH',
-        body: JSON.stringify({ status })
+        body: JSON.stringify({ status, reason })
     }),
 
     deleteAdminAppointment: (id) => authenticatedFetch(`/admin/appointments/${id}`, {
