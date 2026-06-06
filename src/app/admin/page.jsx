@@ -12,7 +12,9 @@ import {
     UserPlus,
     CalendarDays,
     ChevronRight,
-    Phone
+    Phone,
+    Activity,
+    XCircle
 } from 'lucide-react';
 import apiService from '@/services/api';
 import { useRouter } from 'next/navigation';
@@ -179,6 +181,9 @@ export default function AdminDashboard() {
                         
                         {/* Booking Trend */}
                         <ChartCard data={data.chart_last_7_days} />
+
+                        {/* Activity Log */}
+                        <ActivityFeedCard activities={data.recent_activities} />
 
                         {/* Recent Contacts */}
                         <div className="bg-white rounded-[40px] border border-slate-100 shadow-sm p-8">
@@ -413,7 +418,7 @@ function ChartCard({ data }) {
     return (
         <div className="bg-white rounded-[40px] border border-slate-100 shadow-sm p-8">
             <div className="flex items-center justify-between mb-6">
-                <h3 className="text-base font-black text-slate-900 tracking-tight">Activity Log</h3>
+                <h3 className="text-base font-black text-slate-900 tracking-tight">Booking Trends</h3>
                 <TrendingUp className="text-emerald-500" size={20} />
             </div>
             <div className="h-32 flex items-end justify-between gap-2 px-2">
@@ -466,6 +471,61 @@ function StatusBadge({ status }) {
         <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${styles[status] || styles.pending}`}>
             {status}
         </span>
+    );
+}
+
+function ActivityFeedCard({ activities }) {
+    const formatTime = (isoString) => {
+        if (!isoString) return '';
+        const date = new Date(isoString);
+        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    };
+
+    const formatActionIcon = (action) => {
+        switch (action?.toLowerCase()) {
+            case 'booked': return <CalendarDays size={14} className="text-blue-500" />;
+            case 'confirmed': return <CheckCircle2 size={14} className="text-emerald-500" />;
+            case 'rejected': return <XCircle size={14} className="text-red-500" />;
+            case 'rescheduled': return <CalendarDays size={14} className="text-amber-500" />;
+            case 'contacted': return <UserPlus size={14} className="text-purple-500" />;
+            case 'completed': return <CheckCircle2 size={14} className="text-slate-500" />;
+            default: return <Activity size={14} className="text-slate-500" />;
+        }
+    };
+
+    return (
+        <div className="bg-white rounded-[40px] border border-slate-100 shadow-sm p-8">
+            <div className="flex items-center justify-between mb-6">
+                <h3 className="text-base font-black text-slate-900 tracking-tight">Activity Log</h3>
+                <Activity className="text-blue-500" size={20} />
+            </div>
+            <div className="space-y-4 max-h-[300px] overflow-y-auto custom-scrollbar pr-2">
+                {activities && activities.length > 0 ? (
+                    activities.map((activity) => (
+                        <div key={activity.id} className="flex gap-4 items-start">
+                            <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center border border-slate-100 shrink-0 mt-1">
+                                {formatActionIcon(activity.action)}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <p className="text-xs font-bold text-slate-800 leading-snug">{activity.description}</p>
+                                <div className="flex items-center gap-2 mt-1">
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{formatTime(activity.created_at)}</span>
+                                    {activity.user && (
+                                        <span className="text-[9px] font-bold px-2 py-0.5 rounded bg-blue-50 text-blue-600 uppercase tracking-widest">
+                                            {activity.user.name}
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    ))
+                ) : (
+                    <div className="text-center text-slate-400 py-6">
+                        <p className="text-[10px] font-bold uppercase tracking-widest">No recent activity</p>
+                    </div>
+                )}
+            </div>
+        </div>
     );
 }
 
