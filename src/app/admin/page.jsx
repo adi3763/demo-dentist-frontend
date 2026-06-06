@@ -600,29 +600,32 @@ function ChartCard({ data }) {
                 {data?.map((item, i) => {
                     const heightPct = (item.count / maxCount) * 85 + 15; // scales between 15% and 100%
                     return (
-                        <div key={i} className="flex-1 flex flex-col items-center gap-3.5 group relative">
-                            {/* Hover tooltip */}
-                            <div className="absolute bottom-full mb-2 opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none transform translate-y-1 group-hover:-translate-y-0 z-20">
-                                <span className="bg-slate-900 text-white text-[9px] font-bold py-1 px-2 rounded-lg shadow-md whitespace-nowrap block">
-                                    {item.count} Appt{item.count !== 1 ? 's' : ''}
-                                </span>
-                            </div>
+                        <div key={i} className="flex-1 flex flex-col items-center h-full justify-end group relative">
+                            {/* Bar wrapper that takes up remaining space and has resolved height */}
+                            <div className="w-full flex-1 relative flex items-end">
+                                {/* Bar */}
+                                <div 
+                                    className="w-full bg-slate-50 hover:bg-gradient-to-t hover:from-blue-500 hover:to-indigo-600 rounded-t-xl rounded-b-sm transition-all duration-300 cursor-pointer border-t border-slate-100 hover:border-transparent relative"
+                                    style={{ 
+                                        height: `${heightPct}%`,
+                                        background: item.count > 0 ? undefined : '#f8fafc' 
+                                    }}
+                                >
+                                    {/* Hover tooltip positioned relative to the Bar */}
+                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none transform translate-y-1 group-hover:-translate-y-0 z-20">
+                                        <span className="bg-slate-900 text-white text-[9px] font-bold py-1 px-2 rounded-lg shadow-md whitespace-nowrap block">
+                                            {item.count} Appt{item.count !== 1 ? 's' : ''}
+                                        </span>
+                                    </div>
 
-                            {/* Bar */}
-                            <div 
-                                className="w-full bg-slate-50 hover:bg-gradient-to-t hover:from-blue-500 hover:to-indigo-600 rounded-t-xl rounded-b-sm transition-all duration-300 cursor-pointer border-t border-slate-100 hover:border-transparent"
-                                style={{ 
-                                    height: `${heightPct}%`,
-                                    background: item.count > 0 ? undefined : '#f8fafc' 
-                                }}
-                            >
-                                {item.count > 0 && (
-                                    <div className="w-full h-full bg-gradient-to-t from-blue-500 to-indigo-600 rounded-t-xl rounded-b-sm group-hover:opacity-0 transition-opacity duration-300" />
-                                )}
+                                    {item.count > 0 && (
+                                        <div className="w-full h-full bg-gradient-to-t from-blue-500 to-indigo-600 rounded-t-xl rounded-b-sm group-hover:opacity-0 transition-opacity duration-300" />
+                                    )}
+                                </div>
                             </div>
 
                             {/* Date Label */}
-                            <span className="text-[9px] font-semibold text-slate-400 tracking-wide uppercase transition-colors group-hover:text-blue-600">
+                            <span className="text-[9px] font-semibold text-slate-400 tracking-wide uppercase transition-colors group-hover:text-blue-600 mt-2">
                                 {item.date}
                             </span>
                         </div>
