@@ -429,7 +429,7 @@ function ChartCard({ data }) {
                             style={{ height: `${Math.max((item.count / 10) * 100, 10)}%` }}
                             title={`${item.count} appointments on ${item.date}`}
                         />
-                        <span className="text-[8px] font-black text-slate-400 uppercase">{item.date.split('-')[2]}</span>
+                        <span className="text-[8px] font-black text-slate-400 uppercase">{item.date}</span>
                     </div>
                 ))}
             </div>
