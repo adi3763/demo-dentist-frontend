@@ -19,7 +19,7 @@ const DOCTOR_ACTIONS = [
         label: 'Approve',
         icon: CheckCircle2,
         color: 'emerald',
-        applies: (s) => s === 'pending',
+        applies: (s) => ['pending', 'rescheduled'].includes(s),
     },
     {
         key: 'reschedule',
@@ -34,7 +34,7 @@ const DOCTOR_ACTIONS = [
         label: 'Reject',
         icon: XCircle,
         color: 'red',
-        applies: (s) => ['pending', 'confirmed'].includes(s),
+        applies: (s) => ['pending', 'confirmed', 'rescheduled'].includes(s),
         isSpecial: true, // opens reject modal
     },
     {
