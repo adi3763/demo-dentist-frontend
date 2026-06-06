@@ -19,6 +19,15 @@ import {
 import apiService from '@/services/api';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { 
+    ResponsiveContainer, 
+    BarChart, 
+    Bar, 
+    XAxis, 
+    YAxis, 
+    CartesianGrid, 
+    Tooltip 
+} from 'recharts';
 
 export default function AdminDashboard() {
     const router = useRouter();
@@ -582,7 +591,28 @@ function AppointmentRow({ appt, isUpcoming }) {
 }
 
 function ChartCard({ data }) {
-    const maxCount = Math.max(...(data?.map(item => item.count) || []), 1);
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    if (!mounted) {
+        return (
+            <div className="bg-white rounded-[28px] border border-slate-100 shadow-sm p-6 md:p-8">
+                <div className="flex items-center justify-between mb-6">
+                    <div>
+                        <h3 className="text-base font-bold text-slate-900 tracking-tight">Booking Trends</h3>
+                        <p className="text-[10px] text-slate-400 mt-0.5">Last 7 days clinical activity</p>
+                    </div>
+                    <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-emerald-500 shadow-sm">
+                        <TrendingUp size={18} />
+                    </div>
+                </div>
+                <div className="h-32 bg-slate-50/50 rounded-2xl animate-pulse" />
+            </div>
+        );
+    }
 
     return (
         <div className="bg-white rounded-[28px] border border-slate-100 shadow-sm p-6 md:p-8">
@@ -596,41 +626,60 @@ function ChartCard({ data }) {
                 </div>
             </div>
             
-            <div className="h-32 flex items-end justify-between gap-3 px-1 mt-8">
-                {data?.map((item, i) => {
-                    const heightPct = (item.count / maxCount) * 85 + 15; // scales between 15% and 100%
-                    return (
-                        <div key={i} className="flex-1 flex flex-col items-center h-full justify-end group relative">
-                            {/* Bar wrapper that takes up remaining space and has resolved height */}
-                            <div className="w-full flex-1 relative flex items-end">
-                                {/* Bar */}
-                                <div 
-                                    className="w-full bg-slate-50 hover:bg-gradient-to-t hover:from-blue-500 hover:to-indigo-600 rounded-t-xl rounded-b-sm transition-all duration-300 cursor-pointer border-t border-slate-100 hover:border-transparent relative"
-                                    style={{ 
-                                        height: `${heightPct}%`,
-                                        background: item.count > 0 ? undefined : '#f8fafc' 
-                                    }}
-                                >
-                                    {/* Hover tooltip positioned relative to the Bar */}
-                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none transform translate-y-1 group-hover:-translate-y-0 z-20">
-                                        <span className="bg-slate-900 text-white text-[9px] font-bold py-1 px-2 rounded-lg shadow-md whitespace-nowrap block">
-                                            {item.count} Appt{item.count !== 1 ? 's' : ''}
-                                        </span>
-                                    </div>
-
-                                    {item.count > 0 && (
-                                        <div className="w-full h-full bg-gradient-to-t from-blue-500 to-indigo-600 rounded-t-xl rounded-b-sm group-hover:opacity-0 transition-opacity duration-300" />
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Date Label */}
-                            <span className="text-[9px] font-semibold text-slate-400 tracking-wide uppercase transition-colors group-hover:text-blue-600 mt-2">
-                                {item.date}
-                            </span>
-                        </div>
-                    );
-                })}
+            <div className="h-36 w-full mt-4">
+                <ResponsiveContainer width="100%" height="100%">
+                    <BarChart 
+                        data={data || []} 
+                        margin={{ top: 10, right: 5, left: -25, bottom: 0 }}
+                    >
+                        <defs>
+                            <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor="#3b82f6" stopOpacity={1} />
+                                <stop offset="100%" stopColor="#4f46e5" stopOpacity={1} />
+                            </linearGradient>
+                        </defs>
+                        <CartesianGrid 
+                            vertical={false} 
+                            strokeDasharray="4 4" 
+                            stroke="#f1f5f9" 
+                        />
+                        <XAxis 
+                            dataKey="date" 
+                            axisLine={false} 
+                            tickLine={false} 
+                            tick={{ fill: '#94a3b8', fontSize: 9, fontWeight: 600 }}
+                            dy={8}
+                        />
+                        <YAxis 
+                            axisLine={false} 
+                            tickLine={false} 
+                            tick={{ fill: '#94a3b8', fontSize: 9, fontWeight: 600 }}
+                            allowDecimals={false}
+                            dx={-5}
+                        />
+                        <Tooltip 
+                            cursor={{ fill: '#f8fafc', radius: 8 }}
+                            content={({ active, payload }) => {
+                                if (active && payload && payload.length) {
+                                    const value = payload[0].value;
+                                    return (
+                                        <div className="bg-slate-900 text-white text-[10px] font-bold py-1.5 px-3 rounded-xl shadow-lg border border-slate-800 animate-in fade-in zoom-in duration-200">
+                                            {value} Appt{value !== 1 ? 's' : ''}
+                                        </div>
+                                    );
+                                }
+                                return null;
+                            }}
+                        />
+                        <Bar 
+                            dataKey="count" 
+                            fill="url(#colorCount)" 
+                            radius={[6, 6, 0, 0]}
+                            barSize={16}
+                            animationDuration={1000}
+                        />
+                    </BarChart>
+                </ResponsiveContainer>
             </div>
         </div>
     );
