@@ -2,7 +2,6 @@
 import { useState, useEffect } from 'react';
 import { 
     Calendar, 
-    Filter, 
     CheckCircle2, 
     Clock, 
     Phone, 
@@ -19,7 +18,8 @@ import {
     ChevronRight,
     Trash2,
     Eye,
-    Stethoscope
+    Stethoscope,
+    CalendarClock
 } from 'lucide-react';
 import apiService from '@/services/api';
 import { useAuth } from '@/context/AuthContext';
@@ -49,6 +49,15 @@ export default function AppointmentsManagementPage() {
     // Detail Modal
     const [detailModal, setDetailModal] = useState({ isOpen: false, appointment: null });
 
+    // Reschedule Modal
+    const [rescheduleModal, setRescheduleModal] = useState({ isOpen: false, appointmentId: null });
+    const [rescheduleForm, setRescheduleForm] = useState({ new_date: '', new_time: '', reason: '' });
+    const [rescheduleError, setRescheduleError] = useState('');
+    const [rescheduleLoading, setRescheduleLoading] = useState(false);
+
+    // Today's date string for min attr on date inputs
+    const today = new Date().toISOString().split('T')[0];
+
     useEffect(() => {
         if (isAdmin) fetchDoctors();
     }, [isAdmin]);
@@ -69,7 +78,6 @@ export default function AppointmentsManagementPage() {
         setLoading(true);
         setError(null);
         try {
-            // Use different API based on role
             const response = isAdmin 
                 ? await apiService.getAdminAppointments(filters)
                 : await apiService.getDoctorAppointments(filters);
@@ -81,17 +89,13 @@ export default function AppointmentsManagementPage() {
             
             const data = await response.json();
             if (response.ok) {
-                if (isAdmin) {
-                    setAppointments(data.data || []);
-                    setPagination({
-                        current_page: data.current_page,
-                        last_page: data.last_page,
-                        total: data.total
-                    });
-                } else {
-                    setAppointments(data.appointments || []);
-                    setPagination({ current_page: 1, last_page: 1, total: (data.appointments || []).length });
-                }
+                // Both admin and doctor return Laravel paginate() structure
+                setAppointments(data.data || []);
+                setPagination({
+                    current_page: data.current_page || 1,
+                    last_page: data.last_page || 1,
+                    total: data.total || 0
+                });
             } else {
                 setError(data.message || 'Failed to load appointments');
             }
@@ -102,6 +106,48 @@ export default function AppointmentsManagementPage() {
         }
     };
 
+    // ── Reschedule Modal helpers ─────────────────────────────────────
+    const openRescheduleModal = (appointmentId) => {
+        setRescheduleModal({ isOpen: true, appointmentId });
+        setRescheduleForm({ new_date: '', new_time: '', reason: '' });
+        setRescheduleError('');
+    };
+
+    const closeRescheduleModal = () => {
+        setRescheduleModal({ isOpen: false, appointmentId: null });
+        setRescheduleError('');
+    };
+
+    const handleRescheduleSubmit = async (e) => {
+        e.preventDefault();
+        if (!rescheduleForm.new_date || !rescheduleForm.new_time || !rescheduleForm.reason.trim()) {
+            setRescheduleError('Please fill in all fields.');
+            return;
+        }
+        setRescheduleLoading(true);
+        setRescheduleError('');
+        try {
+            const res = isAdmin
+                ? await apiService.rescheduleAdminAppointment(rescheduleModal.appointmentId, rescheduleForm)
+                : await apiService.rescheduleAppointment(rescheduleModal.appointmentId, rescheduleForm);
+
+            if (res.ok) {
+                closeRescheduleModal();
+                // Close detail modal too if it was open
+                if (detailModal.isOpen) setDetailModal({ isOpen: false, appointment: null });
+                fetchAppointments();
+            } else {
+                const data = await res.json();
+                setRescheduleError(data.message || 'Failed to reschedule. Please try again.');
+            }
+        } catch {
+            setRescheduleError('Connection error. Please try again.');
+        } finally {
+            setRescheduleLoading(false);
+        }
+    };
+
+    // ── Generic status update (non-reschedule) ───────────────────────
     const handleUpdateStatus = async (id, status) => {
         setMutationLoading(id);
         try {
@@ -110,10 +156,7 @@ export default function AppointmentsManagementPage() {
                 let reason = undefined;
                 if (status === 'rejected') {
                     reason = prompt('Reason for rejection?');
-                    if (reason === null) return; // User cancelled
-                } else if (status === 'rescheduled') {
-                    reason = prompt('Reason for rescheduling?');
-                    if (reason === null) return; // User cancelled
+                    if (reason === null) return;
                 }
                 res = await apiService.updateAdminAppointmentStatus(id, status, reason);
             } else {
@@ -121,7 +164,7 @@ export default function AppointmentsManagementPage() {
                 else if (status === 'completed') res = await apiService.completeAppointment(id);
                 else if (status === 'rejected') {
                     const reason = prompt('Reason for rejection?');
-                    if (reason === null) return; // User cancelled
+                    if (reason === null) return;
                     res = await apiService.rejectAppointment(id, reason || 'Schedule conflict');
                 }
             }
@@ -147,13 +190,11 @@ export default function AppointmentsManagementPage() {
     };
 
     const viewDetails = async (id) => {
-        if (!isAdmin) return; // Detail API is admin only for now as per request
+        if (!isAdmin) return;
         try {
             const res = await apiService.getAdminAppointmentById(id);
             const data = await res.json();
-            if (res.ok) {
-                setDetailModal({ isOpen: true, appointment: data.appointment });
-            }
+            if (res.ok) setDetailModal({ isOpen: true, appointment: data.appointment });
         } catch (err) { console.error(err); }
     };
 
@@ -167,19 +208,20 @@ export default function AppointmentsManagementPage() {
     };
 
     const formatDate = (dateStr) => {
-        const options = { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' };
-        return new Date(dateStr).toLocaleDateString('en-US', options);
+        return new Date(dateStr).toLocaleDateString('en-US', {
+            weekday: 'short', year: 'numeric', month: 'short', day: 'numeric'
+        });
     };
 
     const getStatusStyles = (status) => {
         switch (status) {
-            case 'pending': return 'bg-amber-50 text-amber-600 border-amber-100';
-            case 'confirmed': return 'bg-emerald-50 text-emerald-600 border-emerald-100';
-            case 'rejected': return 'bg-red-50 text-red-600 border-red-100';
+            case 'pending':     return 'bg-amber-50 text-amber-600 border-amber-100';
+            case 'confirmed':   return 'bg-emerald-50 text-emerald-600 border-emerald-100';
+            case 'rejected':    return 'bg-red-50 text-red-600 border-red-100';
             case 'rescheduled': return 'bg-blue-50 text-blue-600 border-blue-100';
-            case 'completed': return 'bg-slate-50 text-slate-500 border-slate-100';
-            case 'cancelled': return 'bg-slate-50 text-slate-400 border-slate-100';
-            default: return 'bg-slate-50 text-slate-500 border-slate-100';
+            case 'completed':   return 'bg-slate-50 text-slate-500 border-slate-100';
+            case 'cancelled':   return 'bg-slate-50 text-slate-400 border-slate-100';
+            default:            return 'bg-slate-50 text-slate-500 border-slate-100';
         }
     };
 
@@ -273,7 +315,11 @@ export default function AppointmentsManagementPage() {
                         </thead>
                         <tbody className="divide-y divide-slate-50">
                             {loading ? (
-                                [1, 2, 3, 4, 5].map(i => <tr key={i} className="animate-pulse"><td colSpan={isAdmin ? 6 : 5} className="h-20 bg-white/50" /></tr>)
+                                [1, 2, 3, 4, 5].map(i => (
+                                    <tr key={i} className="animate-pulse">
+                                        <td colSpan={isAdmin ? 6 : 5} className="h-20 bg-white/50" />
+                                    </tr>
+                                ))
                             ) : appointments.length > 0 ? (
                                 appointments.map((appt) => (
                                     <tr key={appt.id} className="hover:bg-slate-50/30 transition-colors">
@@ -318,6 +364,7 @@ export default function AppointmentsManagementPage() {
                                                         </button>
                                                     </>
                                                 ) : (
+                                                    /* Doctor action buttons */
                                                     <div className="flex gap-2">
                                                         {appt.status === 'pending' && (
                                                             <>
@@ -328,6 +375,13 @@ export default function AppointmentsManagementPage() {
                                                                     Approve
                                                                 </button>
                                                                 <button 
+                                                                    onClick={() => openRescheduleModal(appt.id)}
+                                                                    className="px-3 py-1.5 bg-blue-500 text-white rounded-lg text-[10px] font-black uppercase hover:bg-blue-600 transition-colors flex items-center gap-1"
+                                                                >
+                                                                    <CalendarClock size={12} />
+                                                                    Reschedule
+                                                                </button>
+                                                                <button 
                                                                     onClick={() => handleUpdateStatus(appt.id, 'rejected')}
                                                                     className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-[10px] font-black uppercase hover:bg-red-600 transition-colors"
                                                                 >
@@ -336,12 +390,21 @@ export default function AppointmentsManagementPage() {
                                                             </>
                                                         )}
                                                         {appt.status === 'confirmed' && (
-                                                            <button 
-                                                                onClick={() => handleUpdateStatus(appt.id, 'completed')}
-                                                                className="px-3 py-1.5 bg-slate-900 text-white rounded-lg text-[10px] font-black uppercase hover:bg-slate-800 transition-colors"
-                                                            >
-                                                                Complete
-                                                            </button>
+                                                            <>
+                                                                <button 
+                                                                    onClick={() => openRescheduleModal(appt.id)}
+                                                                    className="px-3 py-1.5 bg-blue-500 text-white rounded-lg text-[10px] font-black uppercase hover:bg-blue-600 transition-colors flex items-center gap-1"
+                                                                >
+                                                                    <CalendarClock size={12} />
+                                                                    Reschedule
+                                                                </button>
+                                                                <button 
+                                                                    onClick={() => handleUpdateStatus(appt.id, 'completed')}
+                                                                    className="px-3 py-1.5 bg-slate-900 text-white rounded-lg text-[10px] font-black uppercase hover:bg-slate-800 transition-colors"
+                                                                >
+                                                                    Complete
+                                                                </button>
+                                                            </>
                                                         )}
                                                     </div>
                                                 )}
@@ -361,8 +424,8 @@ export default function AppointmentsManagementPage() {
                     </table>
                 </div>
 
-                {/* Pagination (Admin only) */}
-                {isAdmin && pagination.last_page > 1 && (
+                {/* Pagination */}
+                {pagination.last_page > 1 && (
                     <div className="p-8 border-t border-slate-50 flex items-center justify-between bg-slate-50/30">
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
                             Showing page {pagination.current_page} of {pagination.last_page} ({pagination.total} total)
@@ -387,14 +450,20 @@ export default function AppointmentsManagementPage() {
                 )}
             </div>
 
-            {/* Detail Modal (Admin) */}
+            {/* ── Detail Modal (Admin) ─────────────────────────────────────── */}
             {detailModal.isOpen && detailModal.appointment && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setDetailModal({ isOpen: false, appointment: null })} />
+                    <div
+                        className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                        onClick={() => setDetailModal({ isOpen: false, appointment: null })}
+                    />
                     <div className="relative w-full max-w-xl bg-white rounded-[40px] shadow-2xl p-10 animate-in zoom-in-95 duration-200">
                         <div className="flex items-center justify-between mb-8">
                             <h2 className="text-2xl font-black text-slate-900 tracking-tight">Appointment Details</h2>
-                            <button onClick={() => setDetailModal({ isOpen: false, appointment: null })} className="p-2 hover:bg-slate-50 rounded-xl transition-colors">
+                            <button
+                                onClick={() => setDetailModal({ isOpen: false, appointment: null })}
+                                className="p-2 hover:bg-slate-50 rounded-xl transition-colors"
+                            >
                                 <X size={20} className="text-slate-400" />
                             </button>
                         </div>
@@ -408,7 +477,7 @@ export default function AppointmentsManagementPage() {
                             <div className="space-y-4">
                                 <DetailItem label="Doctor" value={detailModal.appointment.doctor?.name} icon={User} />
                                 <DetailItem label="Service" value={detailModal.appointment.service?.name} icon={Stethoscope} />
-                                <DetailItem label="Time" value={`${formatDate(detailModal.appointment.appointment_date)} at ${formatTime(detailModal.appointment.start_time)}`} icon={Clock} />
+                                <DetailItem label="Scheduled" value={`${formatDate(detailModal.appointment.appointment_date)} at ${formatTime(detailModal.appointment.start_time)}`} icon={Clock} />
                             </div>
                         </div>
 
@@ -421,20 +490,170 @@ export default function AppointmentsManagementPage() {
                             </div>
                         )}
 
+                        {/* Status buttons */}
                         <div className="flex flex-col gap-4">
                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Update Status</p>
                             <div className="flex flex-wrap justify-center gap-2">
-                                {['pending', 'confirmed', 'rejected', 'rescheduled', 'completed', 'cancelled'].map(s => (
+                                {['pending', 'confirmed', 'rejected', 'completed', 'cancelled'].map(s => (
                                     <button 
                                         key={s}
                                         onClick={() => handleUpdateStatus(detailModal.appointment.id, s)}
-                                        className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${detailModal.appointment.status === s ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-500 border-slate-100 hover:border-slate-300'}`}
+                                        className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${
+                                            detailModal.appointment.status === s
+                                                ? 'bg-slate-900 text-white border-slate-900'
+                                                : 'bg-white text-slate-500 border-slate-100 hover:border-slate-300'
+                                        }`}
                                     >
                                         {s}
                                     </button>
                                 ))}
+                                {/* Reschedule — opens dedicated modal */}
+                                <button 
+                                    onClick={() => openRescheduleModal(detailModal.appointment.id)}
+                                    className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all flex items-center gap-1.5 ${
+                                        detailModal.appointment.status === 'rescheduled'
+                                            ? 'bg-blue-600 text-white border-blue-600'
+                                            : 'bg-blue-50 text-blue-600 border-blue-100 hover:border-blue-300'
+                                    }`}
+                                >
+                                    <CalendarClock size={12} />
+                                    Reschedule
+                                </button>
                             </div>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ── Reschedule Modal (Admin & Doctor) ───────────────────────── */}
+            {rescheduleModal.isOpen && (
+                <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+                    <div
+                        className="absolute inset-0 bg-slate-900/70 backdrop-blur-sm"
+                        onClick={closeRescheduleModal}
+                    />
+                    <div className="relative w-full max-w-md bg-white rounded-[40px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+
+                        {/* Gradient header */}
+                        <div className="bg-gradient-to-br from-blue-600 to-indigo-700 p-8 text-white">
+                            <div className="flex items-start justify-between gap-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-11 h-11 rounded-2xl bg-white/20 flex items-center justify-center flex-shrink-0">
+                                        <CalendarClock size={22} />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-xl font-black tracking-tight leading-tight">Reschedule Appointment</h2>
+                                        <p className="text-blue-200 text-xs font-semibold mt-0.5">
+                                            Propose a new date & time — patient will be notified via WhatsApp
+                                        </p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={closeRescheduleModal}
+                                    className="p-2 hover:bg-white/20 rounded-xl transition-colors flex-shrink-0"
+                                >
+                                    <X size={20} />
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Form body */}
+                        <form onSubmit={handleRescheduleSubmit} className="p-8 space-y-5">
+
+                            {/* New Date */}
+                            <div>
+                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
+                                    New Date
+                                </label>
+                                <div className="relative">
+                                    <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" size={16} />
+                                    <input
+                                        type="date"
+                                        min={today}
+                                        value={rescheduleForm.new_date}
+                                        onChange={(e) => setRescheduleForm({ ...rescheduleForm, new_date: e.target.value })}
+                                        className="w-full bg-slate-50 rounded-2xl py-3.5 pl-10 pr-4 text-sm font-bold text-slate-700 focus:bg-white focus:ring-2 focus:ring-blue-100 outline-none transition-all border border-transparent focus:border-blue-100"
+                                        required
+                                    />
+                                </div>
+                            </div>
+
+                            {/* New Time */}
+                            <div>
+                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
+                                    New Time
+                                </label>
+                                <div className="relative">
+                                    <Clock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" size={16} />
+                                    <input
+                                        type="time"
+                                        value={rescheduleForm.new_time}
+                                        onChange={(e) => setRescheduleForm({ ...rescheduleForm, new_time: e.target.value })}
+                                        className="w-full bg-slate-50 rounded-2xl py-3.5 pl-10 pr-4 text-sm font-bold text-slate-700 focus:bg-white focus:ring-2 focus:ring-blue-100 outline-none transition-all border border-transparent focus:border-blue-100"
+                                        required
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Reason */}
+                            <div>
+                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
+                                    Reason for Rescheduling
+                                </label>
+                                <textarea
+                                    value={rescheduleForm.reason}
+                                    onChange={(e) => setRescheduleForm({ ...rescheduleForm, reason: e.target.value })}
+                                    placeholder="e.g. Doctor unavailable, emergency, schedule conflict..."
+                                    rows={3}
+                                    className="w-full bg-slate-50 rounded-2xl py-3.5 px-4 text-sm font-medium text-slate-700 focus:bg-white focus:ring-2 focus:ring-blue-100 outline-none transition-all border border-transparent focus:border-blue-100 resize-none"
+                                    required
+                                />
+                            </div>
+
+                            {/* Error banner */}
+                            {rescheduleError && (
+                                <div className="flex items-center gap-3 p-4 bg-red-50 rounded-2xl border border-red-100">
+                                    <AlertCircle size={16} className="text-red-500 flex-shrink-0" />
+                                    <p className="text-xs font-bold text-red-600">{rescheduleError}</p>
+                                </div>
+                            )}
+
+                            {/* Info note */}
+                            <div className="flex items-start gap-3 p-4 bg-blue-50 rounded-2xl border border-blue-100">
+                                <MessageSquare size={15} className="text-blue-500 flex-shrink-0 mt-0.5" />
+                                <p className="text-xs font-medium text-blue-700 leading-relaxed">
+                                    The patient will receive a WhatsApp message with the proposed new slot and a direct link to message the clinic if this time doesn't work for them.
+                                </p>
+                            </div>
+
+                            {/* Action buttons */}
+                            <div className="flex gap-3 pt-1">
+                                <button
+                                    type="button"
+                                    onClick={closeRescheduleModal}
+                                    className="flex-1 py-3.5 bg-slate-100 text-slate-600 rounded-2xl text-sm font-bold hover:bg-slate-200 transition-all"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={rescheduleLoading}
+                                    className="flex-1 py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl text-sm font-black hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg shadow-blue-100 disabled:opacity-60 flex items-center justify-center gap-2"
+                                >
+                                    {rescheduleLoading ? (
+                                        <>
+                                            <RefreshCw size={15} className="animate-spin" />
+                                            Rescheduling...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <CalendarClock size={15} />
+                                            Confirm Reschedule
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             )}

@@ -161,6 +161,11 @@ const apiService = {
         method: 'DELETE'
     }),
 
+    rescheduleAdminAppointment: (id, data) => authenticatedFetch(`/admin/appointments/${id}/reschedule`, {
+        method: 'PATCH',
+        body: JSON.stringify(data)
+    }),
+
     // Contact Submissions (Admin)
     getAdminContacts: (filters = {}) => {
         const params = new URLSearchParams();
@@ -242,6 +247,8 @@ const apiService = {
         const params = new URLSearchParams();
         if (filters.date) params.append('date', filters.date);
         if (filters.status) params.append('status', filters.status);
+        if (filters.search) params.append('search', filters.search);
+        if (filters.page) params.append('page', filters.page);
         return authenticatedFetch(`/doctor/appointments?${params.toString()}`);
     },
 
