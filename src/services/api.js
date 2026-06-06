@@ -96,7 +96,7 @@ const apiService = {
         method: 'PATCH'
     }),
 
-    deleteAdminUser: (id) => authenticatedFetch(`/admin/users/${id}`, {
+    deleteAdminUser: (id, force = false) => authenticatedFetch(`/admin/users/${id}${force ? '?force=true' : ''}`, {
         method: 'DELETE'
     }),
 

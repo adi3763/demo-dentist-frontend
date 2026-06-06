@@ -139,6 +139,17 @@ export default function DoctorsManagementPage() {
         }
     };
 
+    const handleDeletePermanent = async (id) => {
+        if (!confirm('Are you sure you want to PERMANENTLY delete this doctor? This will permanently delete all profile and schedule records. This action cannot be undone.')) return;
+        setMutationLoading(id);
+        try {
+            const res = await apiService.deleteAdminUser(id, true);
+            if (res.ok) fetchDoctors();
+        } finally {
+            setMutationLoading(null);
+        }
+    };
+
     const handleRestore = async (id) => {
         setMutationLoading(id);
         try {
@@ -295,13 +306,22 @@ export default function DoctorsManagementPage() {
                                                             <Key size={16} />
                                                         </button>
                                                         {doc.deleted_at ? (
-                                                            <button 
-                                                                onClick={() => handleRestore(doc.id)}
-                                                                className="p-2 text-emerald-500 hover:bg-emerald-50 rounded-xl transition-all"
-                                                                title="Restore Account"
-                                                            >
-                                                                <UserCheck size={16} />
-                                                            </button>
+                                                            <div className="flex items-center gap-1">
+                                                                <button 
+                                                                    onClick={() => handleRestore(doc.id)}
+                                                                    className="p-2 text-emerald-500 hover:bg-emerald-50 rounded-xl transition-all"
+                                                                    title="Restore Account"
+                                                                >
+                                                                    <UserCheck size={16} />
+                                                                </button>
+                                                                <button 
+                                                                    onClick={() => handleDeletePermanent(doc.id)}
+                                                                    className="p-2 text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                                                                    title="Delete Permanently"
+                                                                >
+                                                                    <Trash2 size={16} />
+                                                                </button>
+                                                            </div>
                                                         ) : (
                                                             <button 
                                                                 onClick={() => handleDelete(doc.id)}
