@@ -1,18 +1,47 @@
 'use client';
+import { useState, useEffect } from 'react';
 import StatCard from './components/StatCard';
 import AppointmentItem from './components/AppointmentView';
 import RightPanel from './components/RightPanel';
 import { Users, CalendarDays, Activity } from 'lucide-react';
+import apiService from '../../services/api';
 
 export default function AdminDashboardScreen() {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        const response = await apiService.getAdminDashboard();
+        if (response.ok) {
+          const json = await response.json();
+          setData(json);
+        }
+      } catch (error) {
+        console.error('Failed to fetch dashboard data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchDashboardData();
+  }, []);
+
+  if (loading) {
+    return <div className="p-8 text-center text-slate-500">Loading dashboard data...</div>;
+  }
+
+  if (!data) {
+    return <div className="p-8 text-center text-red-500">Error loading dashboard data.</div>;
+  }
   return (
     <>
       {/* Stats Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-8">
-        <StatCard label="Total Patients" value="12,482" trend="+12%" icon={Users} color="text-blue-600" />
-        <StatCard label="Today's Appts" value="42" badge="Today" icon={CalendarDays} color="text-indigo-600" />
-        <StatCard label="Total Doctors" value="156" badge="Stable" icon={Activity} color="text-emerald-600" />
-        <StatCard label="Revenue" value="$54,230" trend="+8%" icon={Activity} color="text-green-600" />
+        <StatCard label="Total Patients" value={data.stats?.contacts?.total || "0"} trend="+12%" icon={Users} color="text-blue-600" />
+        <StatCard label="Today's Appts" value={data.stats?.appointments?.today || "0"} badge="Today" icon={CalendarDays} color="text-indigo-600" />
+        <StatCard label="Total Doctors" value={data.stats?.doctors?.total || "0"} badge="Stable" icon={Activity} color="text-emerald-600" />
+        <StatCard label="Pending Appts" value={data.stats?.appointments?.pending || "0"} badge="Action Needed" icon={Activity} color="text-orange-600" />
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
@@ -32,15 +61,26 @@ export default function AdminDashboardScreen() {
           </div>
 
           <div className="space-y-4">
-            <AppointmentItem name="John Smith" id="P-9832" time="09:30 AM" dr="Dr. Emily Watson" status="Confirmed" />
-            <AppointmentItem name="Maria Alva" id="P-1209" time="10:45 AM" dr="Dr. Robert Fox" status="In Progress" />
-            <AppointmentItem name="Thomas K." id="P-5541" time="11:15 AM" dr="Dr. Sarah Chen" status="Waiting" />
+            {data.today_appointments && data.today_appointments.length > 0 ? (
+                data.today_appointments.map(appt => (
+                    <AppointmentItem 
+                        key={appt.id}
+                        name={appt.patient_name} 
+                        id={`P-${appt.id}`} 
+                        time={appt.start_time} 
+                        dr={appt.doctor || 'Unassigned'} 
+                        status={appt.status.charAt(0).toUpperCase() + appt.status.slice(1)} 
+                    />
+                ))
+            ) : (
+                <div className="text-center text-slate-500 py-6">No appointments scheduled for today.</div>
+            )}
           </div>
         </div>
 
         {/* Right Side Panel - Progress & Capacity */}
         <div className="space-y-6">
-          <RightPanel />
+          <RightPanel activities={data.recent_activities || []} />
         </div>
       </div>
     </>
